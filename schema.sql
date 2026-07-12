@@ -1,38 +1,7 @@
--- Estrutura de Tabelas Industriais - TERCEIRO ADM ASSOCIADOS
-CREATE TABLE IF NOT EXISTS cargos (
-    id SERIAL PRIMARY KEY,
-    nome_cargo VARCHAR(100) UNIQUE NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS funcionarios (
-    id SERIAL PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
-    data_admissao DATE NOT NULL,
-    cargo_id INT REFERENCES cargos(id),
-    salario_base NUMERIC(10,2) NOT NULL,
-    departamento VARCHAR(100) NOT NULL,
-    horas_contratuais INT DEFAULT 220,
-    regime_he VARCHAR(20) DEFAULT 'pagar',
-    turno VARCHAR(20) DEFAULT 'diurno',
-    hora_entrada TIME DEFAULT '08:00:00',
-    he_semana INT DEFAULT 0,
-    he_sabado INT DEFAULT 0,
-    he_domingo INT DEFAULT 0,
-    beneficios NUMERIC(10,2) DEFAULT 0.00,
-    qtd_filhos INT DEFAULT 0,
-    plano_saude NUMERIC(10,2) DEFAULT 0.00,
-    plano_odonto NUMERIC(10,2) DEFAULT 0.00,
-    vale_farmacia NUMERIC(10,2) DEFAULT 0.00,
-    sindicato NUMERIC(10,2) DEFAULT 0.00,
-    adiantamento VARCHAR(5) DEFAULT 'nao',
-    vt_desconto VARCHAR(5) DEFAULT 'nao',
-    observacoes TEXT,
-    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- Estrutura Integradora do ERP Pedagógico - TERCEIRO ADM ASSOCIADOS
 
 CREATE TABLE IF NOT EXISTS investimentos_iniciais (
     id SERIAL PRIMARY KEY,
-    descricao_terreno VARCHAR(255) DEFAULT 'Galpão Industrial Metalúrgico',
     valor_terreno NUMERIC(12,2) NOT NULL,
     custo_edificacao NUMERIC(12,2) NOT NULL,
     impostos_transferencia NUMERIC(12,2) NOT NULL,
@@ -49,21 +18,39 @@ CREATE TABLE IF NOT EXISTS maquinas (
     horas_ativas_ano INT NOT NULL,
     potencia_kw NUMERIC(8,2) DEFAULT 0.00,
     tarifa_kwh NUMERIC(6,4) DEFAULT 0.0000,
-    data_aquisicao DATE NOT NULL DEFAULT CURRENT_DATE,
+    data_aquisicao DATE NOT NULL,
     data_manutencao_preventiva DATE NOT NULL,
     diametro_trabalho_mm NUMERIC(8,2) DEFAULT 0.00,
     comprimento_trabalho_mm NUMERIC(8,2) DEFAULT 0.00,
     custo_minuto_maquina NUMERIC(10,4) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS registro_horas_extras (
+-- Tabela Unificada de Engenharia de Produto: Materiais, Insumos e Materia-Prima
+CREATE TABLE IF NOT EXISTS materiais (
     id SERIAL PRIMARY KEY,
-    funcionario_id INT REFERENCES funcionarios(id) ON DELETE CASCADE,
-    data_registro DATE NOT NULL,
-    mes_referencia INT NOT NULL,
-    ano_referencia INT NOT NULL,
-    qtd_horas NUMERIC(5,2) NOT NULL,
-    tipo_dia VARCHAR(20) NOT NULL,
-    eh_noturna BOOLEAN DEFAULT FALSE,
-    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    nome_material VARCHAR(150) NOT NULL,
+    tipo_material VARCHAR(50) NOT NULL, -- 'Materia-Prima', 'Insumo', 'Ferramental'
+    custo_unitario NUMERIC(10,2) NOT NULL,
+    unidade_medida VARCHAR(20) DEFAULT 'un'
+);
+
+-- Tabela de Engenharia de Processo: Vincula o Produto a uma Maquina e tempos do PCP
+CREATE TABLE IF NOT EXISTS processos (
+    id SERIAL PRIMARY KEY,
+    codigo_produto VARCHAR(50) UNIQUE NOT NULL,
+    nome_produto VARCHAR(150) NOT NULL,
+    maquina_id INT REFERENCES maquinas(id) ON DELETE CASCADE,
+    tempo_cycle_min NUMERIC(8,2) NOT NULL,
+    tempo_setup_min NUMERIC(8,2) NOT NULL,
+    lote_padrao INT DEFAULT 100
+);
+
+-- Tabela de Carteira de Pedidos de Vendas e Carga de Producao PCP
+CREATE TABLE IF NOT EXISTS pedidos_venda (
+    id SERIAL PRIMARY KEY,
+    processo_id INT REFERENCES processos(id) ON DELETE CASCADE,
+    quantidade_pedida INT NOT NULL,
+    cliente_nome VARCHAR(150) NOT NULL,
+    carga_horas_pcp NUMERIC(8,2) NOT NULL, -- Calculo automatico: (Qtd * Ciclo + Setup) / 60
+    data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
