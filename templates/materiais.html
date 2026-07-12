@@ -1,34 +1,38 @@
 {% extends 'base.html' %}
-
 {% block title %}Engenharia de Materiais - TERCEIRO ADM ASSOCIADOS{% endblock %}
-
 {% block content %}
-<section class="card" aria-labelledby="tit-materias">
-    <h2 id="tit-materias">Estrutura de Produto (BOM) & Matéria-Prima</h2>
-    <p>Adicione tarugos, componentes, consumíveis e insumos diversos associados à fabricação unitária do item.</p>
+<section class="card" aria-labelledby="tit-materiais">
+    <h2 id="tit-materiais">Engenharia de Produto, Insumos & Matéria-Prima</h2>
+    <p>Mapeie os materiais e insumos da planta industrial configurando a categoria e a unidade de medida padrão para auditoria contábil.</p>
     
-    <div class="inline-form">
-        <input type="text" id="insumoNome" placeholder="Descrição do Material (Ex: Aço SAE 1045)">
-        <input type="number" id="insumoQtd" placeholder="Quantidade">
-        <input type="number" id="insumoCustoUn" placeholder="Custo Unitário (R$)">
-        <button onclick="adicionarInsumo()" class="btn-primary">+ Adicionar Insumo</button>
-    </div>
+    <!-- Input oculto para persistência de alterações -->
+    <input type="hidden" id="materialIdOculto" value="">
 
-    <table class="data-table" id="tabelaInsumos">
-        <thead>
-            <tr>
-                <th>Componente / Insumo</th>
-                <th>Quantidade Utilizada</th>
-                <th>Custo Unitário</th>
-                <th>Subtotal do Item</th>
-                <th>Remover</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    
-    <div class="total-box">
-        <strong>Custo Acumulado de Materiais: R$ <span id="totalMaterialCusto">0.00</span></strong>
+    <div class="grid-form">
+        <div class="form-group">
+            <label for="materialNome">Descrição do Material / Insumo:</label>
+            <input type="text" id="materialNome" placeholder="Ex: Chapa de Aço SAE 1020">
+
+            <label for="materialTipo">Categoria Estrutural (Tipo):</label>
+            <select id="materialTipo">
+                <option value="Matéria-Prima">Matéria-Prima Industrial</option>
+                <option value="Insumo">Insumo Operacional</option>
+                <option value="Ferramental">Componente / Ferramental</option>
+                <option value="Consumível">Gases / Consumível de Solda</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="materialCustoUn">Custo Unitário de Aquisição (R$):</label>
+            <input type="number" id="materialCustoUn" value="150.00" step="0.01">
+
+            <label for="materialUnidade">Unidade de Medida Comercial:</label>
+            <select id="materialUnidade">
+                <option value="un">Unidade (un)</option>
+                <option value="kg">Quilograma (kg)</option>
+                <option value="m">Metro Linear (m)</option>
+                <option value="l">Litro (l)</option>
+            </select>
+            
+            <button onclick="adicionarMaterialServidor()" class="btn-primary" id="btnSalvarMaterial" style="margin-top:15px;">Salvar / Adicionar Item</button>
+        </div>
     </div>
-</section>
-{% endblock %}
