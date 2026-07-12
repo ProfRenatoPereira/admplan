@@ -1,11 +1,11 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request, render_template_string
+from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
-# CONEXAO COM O BANCO DE DADOS POSTGRESQL DO RENDER
+# CONEXAO ESTAVEL COM O BANCO DE DADOS POSTGRESQL DO RENDER
 def obter_conexao_db():
     url_banco = os.environ.get('DATABASE_URL')
     if url_banco:
@@ -30,218 +30,81 @@ def inicializar_banco():
 
 inicializar_banco()
 
-# ROTAS MULTI-PAGINAS INICIAIS
+# ROTAS FISICAS DAS SUAS AULAS INDEPENDENTES
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/terreno')
 def pagina_terreno():
-    try:
-        return render_template('terreno.html')
-    except Exception:
-        html_terreno = """
-        {% extends 'base.html' %}
-        {% block title %}Instalações - TERCEIRO ADM ASSOCIADOS{% endblock %}
-        {% block content %}
-        <section class="card" aria-labelledby="tit-terreno">
-            <h2 id="tit-terreno">Precificação de Instalações Imobiliárias</h2>
-            <p>Monitore o impacto financeiro da infraestrutura física no custo minuto da planta industrial.</p>
-            <div class="grid-form">
-                <div class="form-group">
-                    <label for="imoTerreno">Valor do Terreno (R$):</label>
-                    <input type="number" id="imoTerreno" value="500000">
-                    <label for="imoEdificacao">Custo do Galpão (R$):</label>
-                    <input type="number" id="imoEdificacao" value="750000">
-                    <label for="imoVidaUtil">Amortização (Anos):</label>
-                    <input type="number" id="imoVidaUtil" value="20">
-                </div>
-                <div class="form-group">
-                    <label for="imoImpostos">Impostos Anuais (R$):</label>
-                    <input type="number" id="imoImpostos" value="15000">
-                    <label for="imoHorasAno">Horas / Ano:</label>
-                    <input type="number" id="imoHorasAno" value="2400">
-                    <button onclick="calcularCustosImobiliarios()" class="btn-primary">Salvar Custos no Banco</button>
-                </div>
-            </div>
-            <div id="resultadoImobiliario" class="result-box" style="display:none;"></div>
-        </section>
-        {% endblock %}
-        """
-        return render_template_string(html_terreno)
+    return render_template('terreno.html')
+
 @app.route('/maquinas')
 def pagina_maquinas():
-    try:
-        return render_template('maquinas.html')
-    except Exception:
-        html_maquinas = """
-        {% extends 'base.html' %}
-        {% block title %}Ativos Metalúrgicos - Teradmas{% endblock %}
-        {% block content %}
-        <section class="card" aria-labelledby="tit-maquinas">
-            <h2 id="tit-maquinas">Gestão de Ativos & Eficiência Energética Metalúrgica</h2>
-            <p>Cadastre os parâmetros operacionais, ciclo de manutenção preventiva e consumo elétrico em kW.</p>
-            <input type="hidden" id="maquinaIdOculto" value="">
-            <div class="grid-form">
-                <div class="form-group">
-                    <label for="maquinaNome">Nome / Identificação do Equipamento:</label>
-                    <input type="text" id="maquinaNome" placeholder="Ex: Torno CNC Mazak">
-                    <label for="maquinaPreco">Preço Compra (R$):</label>
-                    <input type="number" id="maquinaPreco" value="250000">
-                    <label for="maquinaVidaUtil">Vida Útil Estimada (Anos):</label>
-                    <input type="number" id="maquinaVidaUtil" value="12">
-                    <label for="maquinaValorRevenda">Valor Residual de Revenda (R$):</label>
-                    <input type="number" id="maquinaValorRevenda" value="50000">
-                    <label for="maquinaAquisicao">Data de Aquisição do Ativo:</label>
-                    <input type="date" id="maquinaAquisicao" value="2026-01-15">
-                </div>
-                <div class="form-group">
-                    <label for="maquinaManutencao">Custo de Manutenção Anual (R$):</label>
-                    <input type="number" id="maquinaManutencao" value="18000">
-                    <label for="maquinaHorasAno">Horas Operacionais por Ano:</label>
-                    <input type="number" id="maquinaHorasAno" value="2400">
-                    <label for="maquinaPotencia">Potência Elétrica do Motor (kW):</label>
-                    <input type="number" id="maquinaPotencia" value="15.5" step="0.1">
-                    <label for="maquinaTarifa">Tarifa de Energia Industrial (R$ / kWh):</label>
-                    <input type="number" id="maquinaTarifa" value="0.75" step="0.0001">
-                    <label for="maquinaDiametro">Diâmetro Máximo de Trabalho (mm):</label>
-                    <input type="number" id="maquinaDiametro" value="350">
-                </div>
-            </div>
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="maquinaComprimento">Comprimento Máximo de Trabalho (mm):</label>
-                <input type="number" id="maquinaComprimento" value="1000">
-                <label for="maquinaPrev">Data para Próxima Manutenção Preventiva:</label>
-                <input type="date" id="maquinaPrev" value="2026-12-20">
-                <button onclick="adicionarMaquinaServidor()" class="btn-primary" id="btnSalvarAtivo" style="margin-top: 15px;">Salvar e Registrar Ativo</button>
-            </div>
-            <table class="data-table" id="tabelaMaquinas">
-                <thead>
-                    <tr><th>Equipamento</th><th>Capacidade Física</th><th>Potência</th><th>Próxima Preventiva</th><th>Custo / Minuto</th><th>Ações de Controle</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-            <div id="resultadoAtivo" class="result-box" style="display:none;"></div>
-        </section>
-        {% endblock %}
-        """
-        return render_template_string(html_maquinas)
+    return render_template('maquinas.html')
+
+@app.route('/materiais')
+def pagina_materiais():
+    return render_template('materiais.html')
 
 @app.route('/processos')
 def pagina_processos():
-    try:
-        return render_template('processos.html')
-    except Exception:
-        html_processos = """
-        {% extends 'base.html' %}
-        {% block title %}Roteiros de Fabricação - TERCEIRO ADM ASSOCIADOS{% endblock %}
-        {% block content %}
-        <section class="card" aria-labelledby="tit-roteiro">
-            <h2 id="tit-roteiro">Engenharia de Processos & Tempo de Máquina</h2>
-            <p>Monte o roteiro operacional das peças vinculando os tempos de ciclo e preparação (set-up) ao custo minuto dos ativos.</p>
-            <div class="grid-form">
-                <div class="form-group">
-                    <label for="procSelecaoMaquina">Equipamento Industrial:</label>
-                    <select id="procSelecaoMaquina"><option value="">-- Selecione uma máquina --</option></select>
-                    <label for="procTempoOperacao">Tempo Ciclo por Peça (Minutos):</label>
-                    <input type="number" id="procTempoOperacao" value="15">
-                    <label for="procTempoSetup">Tempo Set-up / Preparação (Minutos):</label>
-                    <input type="number" id="procTempoSetup" value="30">
-                </div>
-                <div class="form-group">
-                    <label for="procSalarioMod">Salário Base Mensal do Operador (R$):</label>
-                    <input type="number" id="procSalarioMod" value="3000">
-                    <label for="procEncargosPercentual">Encargos Sociais + Benefícios (%):</label>
-                    <input type="number" id="procEncargosPercentual" value="85">
-                    <label for="procLoteTamanho">Tamanho do Lote de Produção (Peças):</label>
-                    <input type="number" id="procLoteTamanho" value="100">
-                    <button onclick="adicionarEtapaProcesso()" class="btn-primary" style="margin-top: 10px;">Inserir Operação no PCP</button>
-                </div>
-            </div>
-            <table class="data-table" id="tabelaProcessos">
-                <thead>
-                    <tr><th>Operação / Máquina</th><th>Ciclo (Min)</th><th>Custo Minuto</th><th>Set-up Rateado</th><th>Custo MOD</th><th>Total Etapa</th><th>Ação</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-            <div class="total-box"><strong>Custo de Processamento da Peça: R$ <span id="totalProcessoCusto">0.00</span></strong></div>
-        </section>
-        {% endblock %}
-        """
-        return render_template_string(html_processos)
-
-@app.route('/materiais')
-def pagina_materiais(): return render_template('materiais.html')
+    return render_template('processos.html')
 
 @app.route('/precificacao')
 def pagina_precificacao():
-    try:
-        return render_template('precificacao.html')
-    except Exception:
-        html_fallback = """
-        {% extends 'base.html' %}
-        {% block title %}Formação de Preço - TERCEIRO ADM ASSOCIADOS{% endblock %}
-        {% block content %}
-        <section class="card" aria-labelledby="tit-markup">
-            <h2 id="tit-markup">Formação Estratégica de Preço por Canais</h2>
-            <div class="grid-form">
-                <div class="form-group">
-                    <label for="custoTotal">Custo Industrial Acumulado (R$):</label>
-                    <input type="number" id="custoTotal" value="0.00" readonly style="background-color:#f1f2f6; font-weight:bold;">
-                    <label for="canalPreco">Canal de Distribuição Comercial:</label>
-                    <select id="canalPreco" onchange="ajustarMargemPorCanal()">
-                        <option value="varejo">Varejo (Margem Padrão)</option>
-                        <option value="atacado">Atacado (Margem de Volume)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="lucro">Margem de Lucro Almejada (%):</label>
-                    <input type="number" id="lucro" value="25">
-                    <label for="impostosInput">Impostos sobre a Venda Faturamento (%):</label>
-                    <input type="number" id="impostosInput" value="18">
-                    <button onclick="calcularPrecovenda()" class="btn-primary" style="margin-top: 10px;">Processar Mark-up e Preço Final</button>
-                </div>
-            </div>
-            <div id="resultado" class="result-box" style="display:none;"></div>
-        </section>
-        {% endblock %}
-        """
-        return render_template_string(html_fallback)
+    return render_template('precificacao.html')
 
-@app.route('/retorno')
-def pagina_retorno(): return render_template('retorno.html')
-# API ENDPOINTS DE PERSISTÊNCIA (POSTGRESQL DO RENDER)
+@app.route('/vendas')
+def pagina_vendas():
+    return render_template('vendas.html')
 
-@app.route('/api/imobiliario', methods=['POST'])
-def salvar_imobiliario():
-    data = request.get_json()
-    v_terr = float(data.get('valor_terreno', 0))
-    c_edif = float(data.get('custo_edificacao', 0))
-    imp = float(data.get('impostos_anuais', 0))
-    v_util = int(data.get('vida_util_anos', 20))
-    h_ano = int(data.get('horas_operacionais_ano', 2400))
-
-    amort = (v_terr + c_edif) / v_util
-    c_anual = amort + imp
-    minutos_ano = h_ano * 60
-    c_min = c_anual / minutos_ano if minutos_ano > 0 else 0
-
+# API: CONTROLE DO VALOR DO IMOVEL DA PLANTA INDUSTRIAL
+@app.route('/api/imobiliario', methods=['GET', 'POST'])
+def gerenciar_imobiliario():
     conn = obter_conexao_db()
-    if conn:
+    if not conn:
+        return jsonify({'error': 'Sem conexao'}), 500
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        v_terr = float(data.get('valor_terreno', 0))
+        c_edif = float(data.get('custo_edificacao', 0))
+        imp = float(data.get('impostos_anuais', 0))
+        v_util = int(data.get('vida_util_anos', 20))
+        h_ano = int(data.get('horas_operacionais_ano', 2400))
+        
+        amort = (v_terr + c_edif) / v_util
+        c_anual = amort + imp
+        min_ano = h_ano * 60
+        c_min = c_anual / min_ano if min_ano > 0 else 0
+        
         try:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) VALUES (%s, %s, %s);", (v_terr, c_edif, imp))
+            cursor.execute("DELETE FROM investimentos_iniciais;")
+            cursor.execute(
+                """INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) 
+                   VALUES (%s, %s, %s);""", (v_terr, c_edif, imp)
+            )
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    return jsonify({'status':'sucesso', 'amortizacaoAnual':round(amort,2), 'custoAnualTotal':round(c_anual,2), 'custoMinutoInstalacao':round(c_min,4)})
-
+            return jsonify({'status': 'sucesso', 'custoMinutoInstalacao': round(c_min, 4)})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    cursor.execute("SELECT * FROM investimentos_iniciais ORDER BY id DESC LIMIT 1;")
+    imovel = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return jsonify(imovel or {})
+# API: CRUD DE MAQUINAS COM EFFICIENCIA ENERGETICA E CAPACIDADE FISICA
 @app.route('/api/maquinas', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/maquinas/<int:maquina_id>', methods=['DELETE'])
 def gerenciar_maquinas(maquina_id=None):
     conn = obter_conexao_db()
-    if not conn: return jsonify([])
+    if not conn:
+        return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'DELETE' and maquina_id:
@@ -251,7 +114,8 @@ def gerenciar_maquinas(maquina_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
             
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
@@ -293,7 +157,8 @@ def gerenciar_maquinas(maquina_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     cursor.execute("SELECT * FROM maquinas ORDER BY id DESC;")
     maquinas = cursor.fetchall()
@@ -301,6 +166,172 @@ def gerenciar_maquinas(maquina_id=None):
     conn.close()
     return jsonify(maquinas)
 
+# API: CRUD DE ENGENHARIA DE MATERIAIS, FERRAMENTAS E MATERIA-PRIMA
+@app.route('/api/materiais', methods=['GET', 'POST', 'PUT'])
+@app.route('/api/materiais/<int:material_id>', methods=['DELETE'])
+def gerenciar_materiais(material_id=None):
+    conn = obter_conexao_db()
+    if not conn:
+        return jsonify([])
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    if request.method == 'DELETE' and material_id:
+        try:
+            cursor.execute("DELETE FROM materiais WHERE id = %s;", (material_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    if request.method in ['POST', 'PUT']:
+        data = request.get_json()
+        id_mat = data.get('id')
+        nome = data.get('nome')
+        tipo = data.get('tipo') # Materia-prima, Componente, Ferramental, Consumivel
+        custo_un = float(data.get('custo_unitario', 0))
+        unidade = data.get('unidade_medida', 'un')
+        
+        try:
+            if request.method == 'PUT' and id_mat:
+                cursor.execute(
+                    "UPDATE materiais SET nome_material=%s, tipo_material=%s, custo_unitario=%s, unidade_medida=%s WHERE id=%s;",
+                    (nome, tipo, custo_un, unidade, id_mat)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO materiais (nome_material, tipo_material, custo_unitario, unidade_medida) VALUES (%s, %s, %s, %s);",
+                    (nome, tipo, custo_un, unidade)
+                )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    cursor.execute("SELECT * FROM materiais ORDER BY nome_material ASC;")
+    materiais = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(materiais)
+# API: CADASTRO DE PRODUTOS, ROTEIROS DE ETAPAS E PCP INDUSTRIAL
+@app.route('/api/processos', methods=['GET', 'POST', 'PUT'])
+@app.route('/api/processos/<int:processo_id>', methods=['DELETE'])
+def gerenciar_processos(processo_id=None):
+    conn = obter_conexao_db()
+    if not conn:
+        return jsonify([])
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    if request.method == 'DELETE' and processo_id:
+        try:
+            cursor.execute("DELETE FROM processos WHERE id = %s;", (processo_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    if request.method in ['POST', 'PUT']:
+        data = request.get_json()
+        id_proc = data.get('id')
+        cod_prod = data.get('codigo_produto')
+        nome_prod = data.get('nome_produto')
+        maq_id = int(data.get('maquina_id'))
+        t_ciclo = float(data.get('tempo_ciclo_min', 0))
+        t_setup = float(data.get('tempo_setup_min', 0))
+        lote = int(data.get('lote_padrao', 100))
+        
+        try:
+            if request.method == 'PUT' and id_proc:
+                cursor.execute(
+                    """UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, 
+                                          tempo_ciclo_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;""",
+                    (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc)
+                )
+            else:
+                cursor.execute(
+                    """INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao) 
+                       VALUES (%s, %s, %s, %s, %s, %s);""", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote)
+                )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    cursor.execute(
+        """SELECT p.*, m.nome_maquina, m.custo_minuto_maquina 
+           FROM processos p 
+           LEFT JOIN maquinas m ON p.maquina_id = m.id 
+           ORDER BY p.codigo_produto ASC;"""
+    )
+    processos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(processos)
+
+# API: EMISSAO E PLANEJAMENTO DE PEDIDOS DE VENDAS E PRODUÇÃO (PCP)
+@app.route('/api/vendas', methods=['GET', 'POST'])
+@app.route('/api/vendas/<int:pedido_id>', methods=['DELETE'])
+def gerenciar_vendas(pedido_id=None):
+    conn = obter_conexao_db()
+    if not conn:
+        return jsonify([])
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    if request.method == 'DELETE' and pedido_id:
+        try:
+            cursor.execute("DELETE FROM pedidos_venda WHERE id = %s;", (pedido_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    if request.method == 'POST':
+        data = request.get_json()
+        processo_id = int(data.get('processo_id')) # ID do Produto Amarrado ao Roteiro PCP
+        qtd_pedida = int(data.get('quantidade', 0))
+        cliente = data.get('cliente', 'Cliente Geral')
+        
+        # Puxa o Roteiro de Processo para calcular a carga horaria de producao necessaria
+        cursor.execute("SELECT tempo_ciclo_min, tempo_setup_min FROM processos WHERE id = %s;", (processo_id,))
+        prod = cursor.fetchone()
+        
+        tempo_total_producao_min = 0
+        if prod:
+            tempo_total_producao_min = (qtd_pedida * float(prod['tempo_ciclo_min'])) + float(prod['tempo_setup_min'])
+            
+        try:
+            cursor.execute(
+                """INSERT INTO pedidos_venda (processo_id, quantidade_pedida, cliente_nome, carga_horas_pcp) 
+                   VALUES (%s, %s, %s, %s);""", (processo_id, qtd_pedida, cliente, round(tempo_total_producao_min / 60.0, 2))
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    cursor.execute(
+        """SELECT v.*, p.codigo_produto, p.nome_produto 
+           FROM pedidos_venda v 
+           LEFT JOIN processos p ON v.processo_id = p.id 
+           ORDER BY v.id DESC;"""
+    )
+    pedidos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(pedidos)
+
+# API: SIMULADOR DE MARK-UP COM_COMMERCE
 @app.route('/api/calculo-markup', methods=['POST'])
 def calcular_markup():
     data = request.get_json()
@@ -308,21 +339,10 @@ def calcular_markup():
     luc = float(data.get('margem_lucro', 0))
     imp = float(data.get('impostos', 0))
     den = 1 - ((luc + imp) / 100)
-    if den <= 0: return jsonify({'error': 'Erro'}), 400
+    if den <= 0:
+        return jsonify({'error': 'Erro de margem'}), 400
     return jsonify({'markup': round(1/den, 2), 'preco_venda': round(c_tot * (1/den), 2)})
 
-@app.route('/api/funcionarios', methods=['GET'])
-def listar_funcionarios_rh():
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM funcionarios ORDER BY id DESC;")
-        res = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return jsonify(res)
-    except Exception: return jsonify([])
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
