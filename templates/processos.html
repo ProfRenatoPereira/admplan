@@ -1,34 +1,53 @@
 {% extends 'base.html' %}
-{% block title %}Roteiros de Fabricação - Teradmas{% endblock %}
+{% block title %}Engenharia de Processos - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
-<section class="card" aria-labelledby="tit-roteiro">
-    <h2 id="tit-roteiro">Engenharia de Processos & Cronoanálise (PCP)</h2>
-    <p>Cadastre os roteiros de fabricação nomeando e codificando produtos. Defina o tempo de ciclo e set-up atrelados aos ativos fixos.</p>
+<section class="card" aria-labelledby="tit-processos">
+    <h2 id="tit-processos">Planejamento de Processos & Roteiros Técnicos (PCP)</h2>
+    <p>Codifique o catálogo de produtos finais vinculando o roteiro de fabricação temporizado ao custo-minuto dos ativos operantes.</p>
     
     <input type="hidden" id="processoIdOculto" value="">
 
     <div class="grid-form">
         <div class="form-group">
-            <label for="procCodigo">Código do Produto (SKU único):</label>
-            <input type="text" id="procCodigo" placeholder="Ex: PRD-001">
+            <label for="procCodigoProd">Código Único do Produto (Part Number):</label>
+            <input type="text" id="procCodigoProd" placeholder="Ex: PRD-CNC-001">
 
-            <label for="procNomeProduto">Nome / Descrição Comercial do Produto:</label>
-            <input type="text" id="procNomeProduto" placeholder="Ex: Eixo de Transmissão Usinado">
+            <label for="procNomeProd">Descrição Comercial do Item:</label>
+            <input type="text" id="procNomeProd" placeholder="Ex: Eixo de Transmissão Usinado">
 
-            <label for="procSelecaoMaquina">Selecione o Equipamento CNC Alocado:</label>
+            <label for="procSelecaoMaquina">Equipamento Alocado para a Etapa:</label>
             <select id="procSelecaoMaquina">
-                <!-- Injetado dinamicamente do banco relacional -->
+                <!-- Injetado dinamicamente via carregarProcessosEAtivosFabrica() -->
             </select>
         </div>
-        
         <div class="form-group">
-            <label for="procTempoOperacao">Tempo de Ciclo / Produção por Peça (Minutos):</label>
-            <input type="number" id="procTempoOperacao" value="12">
+            <label for="procTempoCiclo">Tempo de Ciclo Operatório (Minutos/Peça):</label>
+            <input type="number" id="procTempoCiclo" value="12.5" step="0.1">
 
             <label for="procTempoSetup">Tempo de Preparação / Set-up de Máquina (Minutos):</label>
-            <input type="number" id="procTempoSetup" value="45">
+            <input type="number" id="procTempoSetup" value="45.0" step="0.1">
 
-            <label for="procLoteTamanho">Tamanho de Lote Padrão para Rateio (Unidades):</label>
-            <input type="number" id="procLoteTamanho" value="200">
-
-            <button onclick="adicionarEt
+            <label for="procLotePadrao">Tamanho do Lote Padrão de Produção (Qtd):</label>
+            <input type="number" id="procLotePadrao" value="200">
+            
+            <button onclick="adicionarProcessoPcpServidor()" class="btn-primary" id="btnSalvarProcesso" style="margin-top:15px;">Salvar e Codificar Produto</button>
+        </div>
+    </div>
+    <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Roteiro Tecnológico Homologado</h3>
+    <table class="data-table" id="tabelaProcessos">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descrição do Produto</th>
+                <th>Posto de Trabalho (Ativo)</th>
+                <th>Tempo Ciclo</th>
+                <th>Tempo Set-up</th>
+                <th>Ações de Controle</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Alimentado ao vivo via renderizarTabelaProcessosPcp() -->
+        </tbody>
+    </table>
+</section>
+{% endblock %}
