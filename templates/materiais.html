@@ -36,3 +36,21 @@
             <button onclick="adicionarMaterialServidor()" class="btn-primary" id="btnSalvarMaterial" style="margin-top:15px;">Salvar / Adicionar Item</button>
         </div>
     </div>
+
+        <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Almoxarifado & Especificações Técnicas</h3>
+    <table class="data-table" id="tabelaMateriais">
+        <thead>
+            <tr>
+                <th>Descrição do Insumo</th>
+                <th>Classificação</th>
+                <th>Custo de Entrada</th>
+                <th>Unidade</th>
+                <th>Ações de Controle</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Alimentado ao vivo via carregarMateriaisDoServidor() -->
+        </tbody>
+    </table>
+</section>
+{% endblock %}
