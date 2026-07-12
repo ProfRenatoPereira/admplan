@@ -46,12 +46,50 @@ def pagina_materiais(): return render_template('materiais.html')
 @app.route('/processos')
 def pagina_processos(): return render_template('processos.html')
 
-@app.route('/precificacao')
-def pagina_precificacao(): return render_template('precificacao.html')
-
 @app.route('/vendas')
 def pagina_vendas(): return render_template('vendas.html')
-# API: CONTROLE DO VALOR DO IMOVEL DA PLANTA INDUSTRIAL
+
+# CORREÇÃO DO ERRO 404: Adicionada a rota oficial para mapear o arquivo templates/retorno.html
+@app.route('/retorno')
+def pagina_retorno(): return render_template('retorno.html')
+# ROTA DE PRECIFICACAO PROTEGIDA CONTRA ERRO 500 (TEMPLATE FALLBACK)
+@app.route('/precificacao')
+def pagina_precificacao():
+    try:
+        return render_template('precificacao.html')
+    except Exception:
+        html_fallback = """
+        {% extends 'base.html' %}
+        {% block title %}Formação de Preço - TERCEIRO ADM ASSOCIADOS{% endblock %}
+        {% block content %}
+        <section class="card" aria-labelledby="tit-markup">
+            <h2 id="tit-markup">Formação Estratégica de Preço por Canais</h2>
+            <p>Simule e aplique margens corporativas individualizadas para Atacado ou Varejo sobre o custo industrial acumulado.</p>
+            <div class="grid-form">
+                <div class="form-group">
+                    <label for="custoTotal">Custo Industrial Acumulado do Item (R$):</label>
+                    <input type="number" id="custoTotal" value="150.00" readonly style="background-color: #f1f2f6; font-weight: bold;">
+                    <label for="canalPreco">Canal de Distribuição Comercial:</label>
+                    <select id="canalPreco" onchange="ajustarMargemPorCanal()">
+                        <option value="varejo">Varejo (Margem Padrão)</option>
+                        <option value="atacado">Atacado (Margem de Volume)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="lucro">Margem de Lucro Almejada (%):</label>
+                    <input type="number" id="lucro" value="25">
+                    <label for="impostosInput">Impostos sobre a Venda Faturamento (%):</label>
+                    <input type="number" id="impostosInput" value="18">
+                    <button onclick="calcularPrecovenda()" class="btn-primary" style="margin-top: 10px;">Processar Mark-up e Preço Final</button>
+                </div>
+            </div>
+            <div id="resultado" class="result-box" style="display:none;"></div>
+        </section>
+        {% endblock %}
+        """
+        return render_template_string(html_fallback)
+
+# API: CONTROLE DO VALOR DO IMOVEL (ALINHADO COM SCHEMA.SQL)
 @app.route('/api/imobiliario', methods=['GET', 'POST'])
 def gerenciar_imobiliario():
     conn = obter_conexao_db()
@@ -74,8 +112,8 @@ def gerenciar_imobiliario():
         try:
             cursor.execute("DELETE FROM investimentos_iniciais;")
             cursor.execute(
-                "INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) VALUES (%s, %s, %s);", 
-                (v_terr, c_edif, imp)
+                """INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) 
+                   VALUES (%s, %s, %s);""", (v_terr, c_edif, imp)
             )
             conn.commit()
             cursor.close()
@@ -88,8 +126,7 @@ def gerenciar_imobiliario():
     cursor.close()
     conn.close()
     return jsonify(imovel or {})
-
-# API: CRUD DE MAQUINAS COM EFICIENCIA ENERGETICA Y PARAMETROS METALURGICOS
+# API: CRUD DE MAQUINAS COM EFICIENCIA ENERGETICA E CAPACIDADE METALÚRGICA
 @app.route('/api/maquinas', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/maquinas/<int:maquina_id>', methods=['DELETE'])
 def gerenciar_maquinas(maquina_id=None):
@@ -118,7 +155,7 @@ def gerenciar_maquinas(maquina_id=None):
         pot = float(data.get('potencia_kw', 0))
         tar = float(data.get('tarifa_kwh', 0))
         dt_aq = data.get('data_aquisicao') or '2026-01-15'
-        dt_mn = data.get('data_manutencao') or '2026-12-20'
+        dt_manut = data.get('data_manutencao') or '2026-12-20'
         diam = float(data.get('diametro_mm', 0))
         comp = float(data.get('comprimento_mm', 0))
         
@@ -126,20 +163,21 @@ def gerenciar_maquinas(maquina_id=None):
         min_ano = h_an * 60
         c_energ = (pot * tar) / 60.0
         c_min = ((depr + manut) / min_ano) + c_energ
+
         try:
             if request.method == 'PUT' and id_m:
                 cursor.execute(
                     """UPDATE maquinas SET nome_maquina=%s, preco_compra=%s, tempo_vida_util_anos=%s, valor_revenda_estimado=%s, 
                                           custo_manutencao_anual=%s, horas_ativas_ano=%s, potencia_kw=%s, tarifa_kwh=%s, 
                                           data_aquisicao=%s, data_manutencao_preventiva=%s, diametro_trabalho_mm=%s, comprimento_trabalho_mm=%s, custo_minuto_maquina=%s 
-                       WHERE id=%s;""", (nome, preco, v_ut, v_rev, manut, h_an, pot, tar, dt_aq, dt_mn, diam, comp, c_min, id_m)
+                       WHERE id=%s;""", (nome, preco, v_ut, v_rev, manut, h_an, pot, tar, dt_aq, dt_manut, diam, comp, c_min, id_m)
                 )
             else:
                 cursor.execute(
                     """INSERT INTO maquinas (nome_maquina, preco_compra, tempo_vida_util_anos, valor_revenda_estimado, custo_manutencao_anual, 
                                             horas_ativas_ano, potencia_kw, tarifa_kwh, data_aquisicao, data_manutencao_preventiva, 
                                             diametro_trabalho_mm, comprimento_trabalho_mm, custo_minuto_maquina) 
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""", (nome, preco, v_ut, v_rev, manut, h_an, pot, tar, dt_aq, dt_mn, diam, comp, c_min)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""", (nome, preco, v_ut, v_rev, manut, h_an, pot, tar, dt_aq, dt_manut, diam, comp, c_min)
                 )
             conn.commit()
             cursor.close()
@@ -152,7 +190,6 @@ def gerenciar_maquinas(maquina_id=None):
     cursor.close()
     conn.close()
     return jsonify(maquinas)
-
 # API: CRUD DE ENGENHARIA DE MATERIAIS, FERRAMENTAS E MATERIA-PRIMA
 @app.route('/api/materiais', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/materiais/<int:material_id>', methods=['DELETE'])
@@ -194,6 +231,7 @@ def gerenciar_materiais(material_id=None):
     cursor.close()
     conn.close()
     return jsonify(materiais)
+
 # API: CADASTRO DE PRODUTOS, ROTEIROS DE ETAPAS E PCP INDUSTRIAL
 @app.route('/api/processos', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/processos/<int:processo_id>', methods=['DELETE'])
@@ -223,9 +261,9 @@ def gerenciar_processos(processo_id=None):
         
         try:
             if request.method == 'PUT' and id_proc:
-                cursor.execute("UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, tempo_ciclo_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc))
+                cursor.execute("UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, tempo_cycle_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc))
             else:
-                cursor.execute("INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s, %s);", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote))
+                cursor.execute("INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_cycle_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s, %s);", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote))
             conn.commit()
             cursor.close()
             conn.close()
@@ -261,10 +299,10 @@ def gerenciar_vendas(pedido_id=None):
         qtd_pedida = int(data.get('quantidade', 0))
         cliente = data.get('cliente', 'Cliente Geral')
         
-        cursor.execute("SELECT tempo_ciclo_min, tempo_setup_min FROM processos WHERE id = %s;", (processo_id,))
+        cursor.execute("SELECT tempo_cycle_min, tempo_setup_min FROM processos WHERE id = %s;", (processo_id,))
         prod = cursor.fetchone()
         tempo_total_producao_min = 0
-        if prod: tempo_total_producao_min = (qtd_pedida * float(prod['tempo_ciclo_min'])) + float(prod['tempo_setup_min'])
+        if prod: tempo_total_producao_min = (qtd_pedida * float(prod['tempo_cycle_min'])) + float(prod['tempo_setup_min'])
             
         try:
             cursor.execute("INSERT INTO pedidos_venda (processo_id, quantidade_pedida, cliente_nome, carga_horas_pcp) VALUES (%s, %s, %s, %s);", (processo_id, qtd_pedida, cliente, round(tempo_total_producao_min / 60.0, 2)))
@@ -292,4 +330,5 @@ def calcular_markup():
     return jsonify({'markup': round(1/den, 2), 'preco_venda': round(c_tot * (1/den), 2)})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
