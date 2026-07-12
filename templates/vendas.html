@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Planejamento de Vendas e PCP - TERCEIRO ADM ASSOCIADOS{% endblock %}
+{% block content %}
+<section class="card" aria-labelledby="tit-vendas">
+    <h2>Carteira de Pedidos Comerciais & Carga Horária PCP</h2>
+    <p>Insira os pedidos firmados de vendas. O sistema calculará de forma automática a carga horária necessária no PCP usando a equação: <code>(Quantidade × Ciclo + Set-up) ÷ 60</code>.</p>
+
+    <div class="grid-form">
+        <div class="form-group">
+            <label for="vendaCliente">Nome do Cliente / Comprador Corporativo:</label>
+            <input type="text" id="vendaCliente" placeholder="Ex: Metalúrgica Paraná S/A">
+
+            <label for="vendaSelecaoProduto">Selecione o Produto Solicitado:</label>
+            <select id="vendaSelecaoProduto">
+                <!-- Alimentado dinamicamente das peças codificadas em Engenharia -->
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="vendaQuantidade">Quantidade de Peças Solicitadas (Volume):</label>
+            <input type="number" id="vendaQuantidade" value="500">
+            
+            <button onclick="emitirPedidoComercialVenda()" class="btn-primary" style="margin-top: 25px;">Emitir e Integrar Pedido ao PCP</button>
+        </div>
+    </div>
+    <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Ordem e Carteira de Produção Industrial Ativa</h3>
+    <table class="data-table" id="tabelaVendas">
+        <thead>
+            <tr>
+                <th>Cód. Pedido</th>
+                <th>Cliente Executivo</th>
+                <th>Especificação do Item</th>
+                <th>Volume Pedido</th>
+                <th>Carga de Produção Estimada</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Alimentado via carregarPedidosVendasDoServidor() -->
+        </tbody>
+    </table>
+</section>
+{% endblock %}
