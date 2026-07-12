@@ -1,53 +1,51 @@
 {% extends 'base.html' %}
-{% block title %}Engenharia de Processos - TERCEIRO ADM ASSOCIADOS{% endblock %}
+{% block title %}Roteiro PCP - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
-<section class="card" aria-labelledby="tit-processos">
-    <h2 id="tit-processos">Planejamento de Processos & Roteiros Técnicos (PCP)</h2>
-    <p>Codifique o catálogo de produtos finais vinculando o roteiro de fabricação temporizado ao custo-minuto dos ativos operantes.</p>
+<section class="card">
+    <h2>Engenharia de Processos & Alocação de Tempo de Ativos</h2>
+    <p>Monte o roteiro de fabricação amarrando o produto mestre ao posto de trabalho. Defina os tempos em <strong>Minutos</strong>.</p>
     
     <input type="hidden" id="processoIdOculto" value="">
 
     <div class="grid-form">
         <div class="form-group">
-            <label for="procCodigoProd">Código Único do Produto (Part Number):</label>
-            <input type="text" id="procCodigoProd" placeholder="Ex: PRD-CNC-001">
+            <label for="procSelecaoProduto">Selecione o Produto Codificado:</label>
+            <select id="procSelecaoProduto">
+                <!-- Carregado via carregarProcessosEAtivosFabrica() -->
+            </select>
 
-            <label for="procNomeProd">Descrição Comercial do Item:</label>
-            <input type="text" id="procNomeProd" placeholder="Ex: Eixo de Transmissão Usinado">
-
-            <label for="procSelecaoMaquina">Equipamento Alocado para a Etapa:</label>
+            <label for="procSelecaoMaquina">Selecione o Ativo Fabril:</label>
             <select id="procSelecaoMaquina">
-                <!-- Injetado dinamicamente via carregarProcessosEAtivosFabrica() -->
+                <!-- Carregado via carregarProcessosEAtivosFabrica() -->
             </select>
         </div>
         <div class="form-group">
-            <label for="procTempoCiclo">Tempo de Ciclo Operatório (Minutos/Peça):</label>
-            <input type="number" id="procTempoCiclo" value="12.5" step="0.1">
+            <label for="procTempoCiclo">Tempo de Ciclo (Minutos por Peça):</label>
+            <input type="number" id="procTempoCiclo" value="10" step="0.1">
 
-            <label for="procTempoSetup">Tempo de Preparação / Set-up de Máquina (Minutos):</label>
-            <input type="number" id="procTempoSetup" value="45.0" step="0.1">
+            <label for="procTempoSetup">Tempo de Preparação / Set-up (Minutos):</label>
+            <input type="number" id="procTempoSetup" value="30" step="0.1">
 
-            <label for="procLotePadrao">Tamanho do Lote Padrão de Produção (Qtd):</label>
-            <input type="number" id="procLotePadrao" value="200">
+            <label for="procLotePadrao">Tamanho do Lote Padrão (Qtd):</label>
+            <input type="number" id="procLotePadrao" value="100">
             
-            <button onclick="adicionarProcessoPcpServidor()" class="btn-primary" id="btnSalvarProcesso" style="margin-top:15px;">Salvar e Codificar Produto</button>
+            <button onclick="adicionarProcessoPcpServidor()" class="btn-primary" id="btnSalvarProcesso" style="margin-top: 15px;">Salvar Roteiro no PCP</button>
         </div>
     </div>
-    <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Roteiro Tecnológico Homologado</h3>
+
+    <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Roteiros e Tempos Homologados</h3>
     <table class="data-table" id="tabelaProcessos">
         <thead>
             <tr>
                 <th>Código</th>
-                <th>Descrição do Produto</th>
-                <th>Posto de Trabalho (Ativo)</th>
+                <th>Produto</th>
+                <th>Máquina Alocada</th>
                 <th>Tempo Ciclo</th>
                 <th>Tempo Set-up</th>
-                <th>Ações de Controle</th>
+                <th>Ações</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Alimentado ao vivo via renderizarTabelaProcessosPcp() -->
-        </tbody>
+        <tbody></tbody>
     </table>
 </section>
 {% endblock %}
