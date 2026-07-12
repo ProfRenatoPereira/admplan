@@ -1,7 +1,7 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, render_template_string
 
 app = Flask(__name__)
 
@@ -32,39 +32,30 @@ inicializar_banco()
 
 # ROTAS FISICAS DAS SUAS AULAS INDEPENDENTES
 @app.route('/')
-def index():
-    return render_template('index.html')
+def index(): return render_template('index.html')
 
 @app.route('/terreno')
-def pagina_terreno():
-    return render_template('terreno.html')
+def pagina_terreno(): return render_template('terreno.html')
 
 @app.route('/maquinas')
-def pagina_maquinas():
-    return render_template('maquinas.html')
+def pagina_maquinas(): return render_template('maquinas.html')
 
 @app.route('/materiais')
-def pagina_materiais():
-    return render_template('materiais.html')
+def pagina_materiais(): return render_template('materiais.html')
 
 @app.route('/processos')
-def pagina_processos():
-    return render_template('processos.html')
+def pagina_processos(): return render_template('processos.html')
 
 @app.route('/precificacao')
-def pagina_precificacao():
-    return render_template('precificacao.html')
+def pagina_precificacao(): return render_template('precificacao.html')
 
 @app.route('/vendas')
-def pagina_vendas():
-    return render_template('vendas.html')
-
+def pagina_vendas(): return render_template('vendas.html')
 # API: CONTROLE DO VALOR DO IMOVEL DA PLANTA INDUSTRIAL
 @app.route('/api/imobiliario', methods=['GET', 'POST'])
 def gerenciar_imobiliario():
     conn = obter_conexao_db()
-    if not conn:
-        return jsonify({'error': 'Sem conexao'}), 500
+    if not conn: return jsonify({'error': 'Sem conexao'}), 500
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'POST':
@@ -83,28 +74,27 @@ def gerenciar_imobiliario():
         try:
             cursor.execute("DELETE FROM investimentos_iniciais;")
             cursor.execute(
-                """INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) 
-                   VALUES (%s, %s, %s);""", (v_terr, c_edif, imp)
+                "INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) VALUES (%s, %s, %s);", 
+                (v_terr, c_edif, imp)
             )
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso', 'custoMinutoInstalacao': round(c_min, 4)})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
             
     cursor.execute("SELECT * FROM investimentos_iniciais ORDER BY id DESC LIMIT 1;")
     imovel = cursor.fetchone()
     cursor.close()
     conn.close()
     return jsonify(imovel or {})
-# API: CRUD DE MAQUINAS COM EFFICIENCIA ENERGETICA E CAPACIDADE FISICA
+
+# API: CRUD DE MAQUINAS COM EFICIENCIA ENERGETICA Y PARAMETROS METALURGICOS
 @app.route('/api/maquinas', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/maquinas/<int:maquina_id>', methods=['DELETE'])
 def gerenciar_maquinas(maquina_id=None):
     conn = obter_conexao_db()
-    if not conn:
-        return jsonify([])
+    if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'DELETE' and maquina_id:
@@ -114,8 +104,7 @@ def gerenciar_maquinas(maquina_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
             
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
@@ -137,7 +126,6 @@ def gerenciar_maquinas(maquina_id=None):
         min_ano = h_an * 60
         c_energ = (pot * tar) / 60.0
         c_min = ((depr + manut) / min_ano) + c_energ
-
         try:
             if request.method == 'PUT' and id_m:
                 cursor.execute(
@@ -157,8 +145,7 @@ def gerenciar_maquinas(maquina_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
 
     cursor.execute("SELECT * FROM maquinas ORDER BY id DESC;")
     maquinas = cursor.fetchall()
@@ -171,8 +158,7 @@ def gerenciar_maquinas(maquina_id=None):
 @app.route('/api/materiais/<int:material_id>', methods=['DELETE'])
 def gerenciar_materiais(material_id=None):
     conn = obter_conexao_db()
-    if not conn:
-        return jsonify([])
+    if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'DELETE' and material_id:
@@ -182,34 +168,26 @@ def gerenciar_materiais(material_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
             
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
         id_mat = data.get('id')
         nome = data.get('nome')
-        tipo = data.get('tipo') # Materia-prima, Componente, Ferramental, Consumivel
+        tipo = data.get('tipo')
         custo_un = float(data.get('custo_unitario', 0))
         unidade = data.get('unidade_medida', 'un')
         
         try:
             if request.method == 'PUT' and id_mat:
-                cursor.execute(
-                    "UPDATE materiais SET nome_material=%s, tipo_material=%s, custo_unitario=%s, unidade_medida=%s WHERE id=%s;",
-                    (nome, tipo, custo_un, unidade, id_mat)
-                )
+                cursor.execute("UPDATE materiais SET nome_material=%s, tipo_material=%s, custo_unitario=%s, unidade_medida=%s WHERE id=%s;", (nome, tipo, custo_un, unidade, id_mat))
             else:
-                cursor.execute(
-                    "INSERT INTO materiais (nome_material, tipo_material, custo_unitario, unidade_medida) VALUES (%s, %s, %s, %s);",
-                    (nome, tipo, custo_un, unidade)
-                )
+                cursor.execute("INSERT INTO materiais (nome_material, tipo_material, custo_unitario, unidade_medida) VALUES (%s, %s, %s, %s);", (nome, tipo, custo_un, unidade))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
 
     cursor.execute("SELECT * FROM materiais ORDER BY nome_material ASC;")
     materiais = cursor.fetchall()
@@ -221,8 +199,7 @@ def gerenciar_materiais(material_id=None):
 @app.route('/api/processos/<int:processo_id>', methods=['DELETE'])
 def gerenciar_processos(processo_id=None):
     conn = obter_conexao_db()
-    if not conn:
-        return jsonify([])
+    if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'DELETE' and processo_id:
@@ -232,8 +209,7 @@ def gerenciar_processos(processo_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
             
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
@@ -247,29 +223,16 @@ def gerenciar_processos(processo_id=None):
         
         try:
             if request.method == 'PUT' and id_proc:
-                cursor.execute(
-                    """UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, 
-                                          tempo_ciclo_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;""",
-                    (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc)
-                )
+                cursor.execute("UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, tempo_ciclo_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc))
             else:
-                cursor.execute(
-                    """INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao) 
-                       VALUES (%s, %s, %s, %s, %s, %s);""", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote)
-                )
+                cursor.execute("INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s, %s);", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
 
-    cursor.execute(
-        """SELECT p.*, m.nome_maquina, m.custo_minuto_maquina 
-           FROM processos p 
-           LEFT JOIN maquinas m ON p.maquina_id = m.id 
-           ORDER BY p.codigo_produto ASC;"""
-    )
+    cursor.execute("SELECT p.*, m.nome_maquina, m.custo_minuto_maquina FROM processos p LEFT JOIN maquinas m ON p.maquina_id = m.id ORDER BY p.codigo_produto ASC;")
     processos = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -280,8 +243,7 @@ def gerenciar_processos(processo_id=None):
 @app.route('/api/vendas/<int:pedido_id>', methods=['DELETE'])
 def gerenciar_vendas(pedido_id=None):
     conn = obter_conexao_db()
-    if not conn:
-        return jsonify([])
+    if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     if request.method == 'DELETE' and pedido_id:
@@ -291,47 +253,34 @@ def gerenciar_vendas(pedido_id=None):
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
             
     if request.method == 'POST':
         data = request.get_json()
-        processo_id = int(data.get('processo_id')) # ID do Produto Amarrado ao Roteiro PCP
+        processo_id = int(data.get('processo_id'))
         qtd_pedida = int(data.get('quantidade', 0))
         cliente = data.get('cliente', 'Cliente Geral')
         
-        # Puxa o Roteiro de Processo para calcular a carga horaria de producao necessaria
         cursor.execute("SELECT tempo_ciclo_min, tempo_setup_min FROM processos WHERE id = %s;", (processo_id,))
         prod = cursor.fetchone()
-        
         tempo_total_producao_min = 0
-        if prod:
-            tempo_total_producao_min = (qtd_pedida * float(prod['tempo_ciclo_min'])) + float(prod['tempo_setup_min'])
+        if prod: tempo_total_producao_min = (qtd_pedida * float(prod['tempo_ciclo_min'])) + float(prod['tempo_setup_min'])
             
         try:
-            cursor.execute(
-                """INSERT INTO pedidos_venda (processo_id, quantidade_pedida, cliente_nome, carga_horas_pcp) 
-                   VALUES (%s, %s, %s, %s);""", (processo_id, qtd_pedida, cliente, round(tempo_total_producao_min / 60.0, 2))
-            )
+            cursor.execute("INSERT INTO pedidos_venda (processo_id, quantidade_pedida, cliente_nome, carga_horas_pcp) VALUES (%s, %s, %s, %s);", (processo_id, qtd_pedida, cliente, round(tempo_total_producao_min / 60.0, 2)))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        except Exception as e: return jsonify({'error': str(e)}), 500
 
-    cursor.execute(
-        """SELECT v.*, p.codigo_produto, p.nome_produto 
-           FROM pedidos_venda v 
-           LEFT JOIN processos p ON v.processo_id = p.id 
-           ORDER BY v.id DESC;"""
-    )
+    cursor.execute("SELECT v.*, p.codigo_produto, p.nome_produto FROM pedidos_venda v LEFT JOIN processos p ON v.processo_id = p.id ORDER BY v.id DESC;")
     pedidos = cursor.fetchall()
     cursor.close()
     conn.close()
     return jsonify(pedidos)
 
-# API: SIMULADOR DE MARK-UP COM_COMMERCE
+# API: SIMULADOR DE MARK-UP
 @app.route('/api/calculo-markup', methods=['POST'])
 def calcular_markup():
     data = request.get_json()
@@ -339,10 +288,8 @@ def calcular_markup():
     luc = float(data.get('margem_lucro', 0))
     imp = float(data.get('impostos', 0))
     den = 1 - ((luc + imp) / 100)
-    if den <= 0:
-        return jsonify({'error': 'Erro de margem'}), 400
+    if den <= 0: return jsonify({'error': 'Erro'}), 400
     return jsonify({'markup': round(1/den, 2), 'preco_venda': round(c_tot * (1/den), 2)})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
