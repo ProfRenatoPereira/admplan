@@ -37,6 +37,9 @@ def pagina_terreno(): return render_template('terreno.html')
 @app.route('/maquinas')
 def pagina_maquinas(): return render_template('maquinas.html')
 
+@app.route('/produtos')
+def pagina_produtos(): return render_template('produtos.html')
+
 @app.route('/materiais')
 def pagina_materiais(): return render_template('materiais.html')
 
@@ -89,7 +92,6 @@ def gerenciar_maquinas(maquina_id=None):
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     if request.method == 'DELETE' and maquina_id:
         try:
-            cursor.execute("DELETE FROM processos WHERE maquina_id = %s;", (maquina_id,))
             cursor.execute("DELETE FROM maquinas WHERE id = %s;", (maquina_id,))
             conn.commit()
             cursor.close()
@@ -131,6 +133,40 @@ def gerenciar_maquinas(maquina_id=None):
     conn.close()
     return jsonify(maquinas)
 
+@app.route('/api/produtos', methods=['GET', 'POST', 'PUT'])
+@app.route('/api/produtos/<int:produto_id>', methods=['DELETE'])
+def gerenciar_produtos(produto_id=None):
+    conn = obter_conexao_db()
+    if not conn: return jsonify([])
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    if request.method == 'DELETE' and produto_id:
+        try:
+            cursor.execute("DELETE FROM produtos WHERE id = %s;", (produto_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e: return jsonify({'error': str(e)}), 500
+    if request.method in ['POST', 'PUT']:
+        data = request.get_json()
+        id_p = data.get('id')
+        cod = data.get('codigo_produto')
+        nome = data.get('nome_produto')
+        try:
+            if request.method == 'PUT' and id_p:
+                cursor.execute("UPDATE produtos SET codigo_produto=%s, nome_produto=%s WHERE id=%s;", (cod, nome, id_p))
+            else:
+                cursor.execute("INSERT INTO produtos (codigo_produto, nome_produto) VALUES (%s, %s);", (cod, nome))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e: return jsonify({'error': str(e)}), 500
+    cursor.execute("SELECT * FROM produtos ORDER BY codigo_produto ASC;")
+    p = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(p)
 @app.route('/api/materiais', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/materiais/<int:material_id>', methods=['DELETE'])
 def gerenciar_materiais(material_id=None):
@@ -167,6 +203,7 @@ def gerenciar_materiais(material_id=None):
     cursor.close()
     conn.close()
     return jsonify(materiais)
+
 @app.route('/api/processos', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/processos/<int:processo_id>', methods=['DELETE'])
 def gerenciar_processos(processo_id=None):
@@ -175,7 +212,6 @@ def gerenciar_processos(processo_id=None):
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     if request.method == 'DELETE' and processo_id:
         try:
-            cursor.execute("DELETE FROM pedidos_venda WHERE processo_id = %s;", (processo_id,))
             cursor.execute("DELETE FROM processos WHERE id = %s;", (processo_id,))
             conn.commit()
             cursor.close()
@@ -185,23 +221,22 @@ def gerenciar_processos(processo_id=None):
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
         id_proc = data.get('id')
-        cod_prod = data.get('codigo_produto')
-        nome_prod = data.get('nome_produto')
+        prod_id = int(data.get('produto_id'))
         maq_id = int(data.get('maquina_id'))
         t_ciclo = float(data.get('tempo_ciclo_min', 0))
         t_setup = float(data.get('tempo_setup_min', 0))
         lote = int(data.get('lote_padrao', 100))
         try:
             if request.method == 'PUT' and id_proc:
-                cursor.execute("UPDATE processos SET codigo_produto=%s, nome_produto=%s, maquina_id=%s, tempo_cycle_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote, id_proc))
+                cursor.execute("UPDATE processos SET produto_id=%s, maquina_id=%s, tempo_cycle_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (prod_id, maq_id, t_ciclo, t_setup, lote, id_proc))
             else:
-                cursor.execute("INSERT INTO processos (codigo_produto, nome_produto, maquina_id, tempo_cycle_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s, %s);", (cod_prod, nome_prod, maq_id, t_ciclo, t_setup, lote))
+                cursor.execute("INSERT INTO procesos (produto_id, maquina_id, tempo_cycle_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s);", (prod_id, maq_id, t_ciclo, t_setup, lote))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
         except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT p.*, m.nome_maquina, m.custo_minuto_maquina FROM processos p LEFT JOIN maquinas m ON p.maquina_id = m.id ORDER BY p.codigo_produto ASC;")
+    cursor.execute("SELECT p.*, prod.codigo_produto, prod.nome_produto, m.nome_maquina, m.custo_minuto_maquina FROM processos p LEFT JOIN produtos prod ON p.produto_id = prod.id LEFT JOIN maquinas m ON p.maquina_id = m.id ORDER BY prod.codigo_produto ASC;")
     processos = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -223,21 +258,21 @@ def gerenciar_vendas(pedido_id=None):
         except Exception as e: return jsonify({'error': str(e)}), 500
     if request.method == 'POST':
         data = request.get_json()
-        processo_id = int(data.get('processo_id'))
+        prod_id = int(data.get('produto_id'))
         qtd_pedida = int(data.get('quantidade', 0))
         cliente = data.get('cliente', 'Cliente Geral')
-        cursor.execute("SELECT tempo_cycle_min, tempo_setup_min FROM processos WHERE id = %s;", (processo_id,))
+        cursor.execute("SELECT tempo_cycle_min, tempo_setup_min FROM processos WHERE produto_id = %s LIMIT 1;", (prod_id,))
         prod = cursor.fetchone()
         tempo_total_producao_min = 0
         if prod: tempo_total_producao_min = (qtd_pedida * float(prod['tempo_cycle_min'])) + float(prod['tempo_setup_min'])
         try:
-            cursor.execute("INSERT INTO pedidos_venda (processo_id, quantidade_pedida, cliente_nome, carga_minutos_pcp) VALUES (%s, %s, %s, %s);", (processo_id, qtd_pedida, cliente, round(tempo_total_producao_min, 2)))
+            cursor.execute("INSERT INTO pedidos_venda (produto_id, quantidade_pedida, cliente_nome, carga_minutos_pcp) VALUES (%s, %s, %s, %s);", (prod_id, qtd_pedida, cliente, round(tempo_total_producao_min, 2)))
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
         except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT v.*, p.codigo_produto, p.nome_produto FROM pedidos_venda v LEFT JOIN processos p ON v.processo_id = p.id ORDER BY v.id DESC;")
+    cursor.execute("SELECT v.*, p.codigo_produto, p.nome_produto FROM pedidos_venda v LEFT JOIN produtos p ON v.produto_id = p.id ORDER BY v.id DESC;")
     pedidos = cursor.fetchall()
     cursor.close()
     conn.close()
