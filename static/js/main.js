@@ -2,20 +2,23 @@ let parqueMaquinas = [];
 let listaMateriaisBanco = [];
 let listaProcessosPcp = [];
 let carteiraPedidosVendas = [];
+let listaProdutosMestre = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     const menuToggle = document.getElementById('menuToggle');
     const navMenu = document.getElementById('navMenu');
     if (menuToggle && navMenu) {
         menuToggle.addEventListener('click', () => {
-            const expandido = menuToggle.getAttribute('aria-expanded') === 'true';
-            menuToggle.setAttribute('aria-expanded', !expandido);
+            const exp = menuToggle.getAttribute('aria-expanded') === 'true';
+            menuToggle.setAttribute('aria-expanded', !exp);
             navMenu.classList.toggle('active');
         });
     }
+
     if (document.getElementById('tabelaMaquinas')) carregarMaquinasDoServidor();
     if (document.getElementById('tabelaMateriais')) carregarMateriaisDoServidor();
-    if (document.getElementById('procSelecaoMaquina')) carregarProcessosEAtivosFabrica();
+    if (document.getElementById('tabelaProdutosMestre')) carregarProdutosMestreDoServidor();
+    if (document.getElementById('procSelecaoProduto')) carregarProcessosEAtivosFabrica();
     if (document.getElementById('vendaSelecaoProduto')) carregarModuloVendasEPlanejamento();
     if (document.getElementById('custoTotal')) carregarEMotorCustoGlobal();
     if (document.getElementById('imoTerreno')) carregarDadosImovelExistente();
@@ -23,25 +26,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function toggleContraste() { document.body.classList.toggle('alto-contraste'); }
 let tamanhoFonteAtual = 100;
-function alterarFonte(direcao) {
-    tamanhoFonteAtual += (direcao * 10);
+function alterarFonte(dir) {
+    tamanhoFonteAtual += (dir * 10);
     if (tamanhoFonteAtual >= 80 && tamanhoFonteAtual <= 140) document.documentElement.style.fontSize = `${tamanhoFonteAtual}%`;
 }
-function emitirAudioTexto(texto) {
+function emitirAudioTexto(t) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const m = new SpeechSynthesisUtterance(texto); m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
+        const m = new SpeechSynthesisUtterance(t); m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
     }
 }
 
+
+
 async function carregarDadosImovelExistente() {
-    const response = await fetch('/api/imobiliario');
-    if (response.ok) {
-        const imovel = await response.json();
-        if (imovel.valor_terreno) {
-            document.getElementById('imoTerreno').value = imovel.valor_terreno;
-            document.getElementById('imoEdificacao').value = imovel.custo_edificacao;
-            document.getElementById('imoImpostos').value = imovel.impostos_transferencia;
+    const r = await fetch('/api/imobiliario');
+    if (r.ok) {
+        const i = await r.json();
+        if (i.valor_terreno) {
+            document.getElementById('imoTerreno').value = i.valor_terreno;
+            document.getElementById('imoEdificacao').value = i.custo_edificacao;
+            document.getElementById('imoImpostos').value = i.impostos_transferencia;
         }
     }
 }
@@ -53,23 +58,24 @@ async function calcularCustosImobiliarios() {
     const vida_util_anos = parseInt(document.getElementById('imoVidaUtil').value) || 20;
     const minutos_operacionais_ano = parseInt(document.getElementById('imoHorasAno').value) || 144000;
 
-    const response = await fetch('/api/imobiliario', {
+    const r = await fetch('/api/imobiliario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ valor_terreno, custo_edificacao, impostos_anuais, vida_util_anos, minutos_operacionais_ano })
     });
-    if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('custoMinutoImobiliario', data.custoMinutoInstalacao);
+    if (r.ok) {
+        const d = await r.json();
+        localStorage.setItem('custoMinutoImobiliario', d.custoMinutoInstalacao);
         localStorage.setItem('totalInvestidoEstrutura', (valor_terreno + custo_edificacao).toString());
-        const box = document.getElementById('resultadoImobiliario');
-        if (box) { box.style.display = 'block'; box.innerHTML = `<p>Custo Planta: R$ ${data.custoMinutoInstalacao} / min.</p>`; }
+        const b = document.getElementById('resultadoImobiliario');
+        if (b) { b.style.display = 'block'; b.innerHTML = `<p>Custo Planta: R$ ${d.custoMinutoInstalacao} / min.</p>`; }
         emitirAudioTexto("Custos imobiliarios salvos.");
     }
 }
+
 async function carregarMaquinasDoServidor() {
-    const response = await fetch('/api/maquinas');
-    if (response.ok) { parqueMaquinas = await response.json(); renderizarTabelaMaquinas(); }
+    const r = await fetch('/api/maquinas');
+    if (r.ok) { parqueMaquinas = await r.json(); renderizarTabelaMaquinas(); }
 }
 
 async function adicionarMaquinaServidor() {
@@ -88,15 +94,17 @@ async function adicionarMaquinaServidor() {
     const comprimento_mm = parseFloat(document.getElementById('maquinaComprimento').value) || 0;
 
     if (!nome || preco <= 0) { alert("Preencha o ativo."); return; }
-    const metodo = id_maquina ? 'PUT' : 'POST';
+    const m = id_maquina ? 'PUT' : 'POST';
 
-    const response = await fetch('/api/maquinas', {
-        method: metodo,
+    const r = await fetch('/api/maquinas', {
+        method: m,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id_maquina, nome, preco, vida_util: vidaUtil, valor_revenda: valorRevenda, manutencao, minutos_ativos_ano, potencia_kw, tarifa_kwh, data_aquisicao, data_manutencao, diametro_mm, comprimento_mm })
     });
-    if (response.ok) { limparFormularioMaquinas(); carregarMaquinasDoServidor(); emitirAudioTexto("Ativo processado."); }
+    if (r.ok) { limparFormularioMaquinas(); carregarMaquinasDoServidor(); emitirAudioTexto("Ativo processado."); }
 }
+
+
 
 function renderizarTabelaMaquinas() {
     const tbody = document.querySelector('#tabelaMaquinas tbody'); if (!tbody) return; tbody.innerHTML = '';
@@ -109,11 +117,11 @@ function renderizarTabelaMaquinas() {
 
 async function deletarAtivoServidor(id) {
     if (!confirm("Deletar ativo?")) return;
-    const response = await fetch(`/api/maquinas/${id}`, { method: 'DELETE' }); if (response.ok) carregarMaquinasDoServidor();
+    const r = await fetch(`/api/maquinas/${id}`, { method: 'DELETE' }); if (r.ok) carregarMaquinasDoServidor();
 }
 
 function carregarAtivoParaEdicao(id) {
-    const m = parqueMaquinas.find(item => item.id === id); if (!m) return;
+    const m = parqueMaquinas.find(i => i.id === id); if (!m) return;
     document.getElementById('maquinaIdOculto').value = m.id; document.getElementById('maquinaNome').value = m.nome_maquina;
     document.getElementById('maquinaPreco').value = m.preco_compra; document.getElementById('maquinaVidaUtil').value = m.tempo_vida_util_anos;
     document.getElementById('maquinaValorRevenda').value = m.valor_revenda_estimado; document.getElementById('maquinaManutencao').value = m.custo_manutencao_anual;
@@ -127,16 +135,16 @@ function carregarAtivoParaEdicao(id) {
 function limparFormularioMaquinas() { document.getElementById('maquinaIdOculto').value = ''; document.getElementById('maquinaNome').value = ''; document.getElementById('btnSalvarAtivo').innerText = "Salvar e Registrar Ativo"; }
 
 async function carregarMateriaisDoServidor() {
-    const response = await fetch('/api/materiais'); if (response.ok) { listaMateriaisBanco = await response.json(); renderizarTabelaMateriais(); }
+    const r = await fetch('/api/materiais'); if (r.ok) { listaMateriaisBanco = await r.json(); renderizarTabelaMateriais(); }
 }
 
 async function adicionarMaterialServidor() {
     const id_mat = document.getElementById('materialIdOculto').value; const nome = document.getElementById('materialNome').value.trim();
-    const tipo = document.getElementById('materialTipo').value; const custo_unitario = parseFloat(document.getElementById('materialCustoUn').value) || 0;
-    const unidade_medida = document.getElementById('materialUnidade').value;
-    if (!nome || custo_unitario <= 0) return; const metodo = id_mat ? 'PUT' : 'POST';
-    const response = await fetch('/api/materiais', { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id_mat, nome, tipo, custo_unitario, unidade_medida }) });
-    if (response.ok) { document.getElementById('materialIdOculto').value = ''; document.getElementById('materialNome').value = ''; document.getElementById('btnSalvarMaterial').innerText = "Salvar / Adicionar Item"; carregarMateriaisDoServidor(); }
+    const tipo = document.getElementById('materialTipo').value; const custo_un = parseFloat(document.getElementById('materialCustoUn').value) || 0;
+    const unidade = document.getElementById('materialUnidade').value;
+    if (!nome || custo_un <= 0) return; const m = id_mat ? 'PUT' : 'POST';
+    const r = await fetch('/api/materiais', { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id_mat, nome, tipo, custo_unitario: custo_un, unidade_medida: unidade }) });
+    if (r.ok) { document.getElementById('materialIdOculto').value = ''; document.getElementById('materialNome').value = ''; document.getElementById('btnSalvarMaterial').innerText = "Salvar / Adicionar Item"; carregarMateriaisDoServidor(); }
 }
 
 function renderizarTabelaMateriais() {
@@ -148,7 +156,7 @@ function renderizarTabelaMateriais() {
 
 async function deletarMaterialServidor(id) {
     if (!confirm("Excluir item?")) return;
-    const response = await fetch(`/api/materiais/${id}`, { method: 'DELETE' }); if (response.ok) carregarMateriaisDoServidor();
+    const r = await fetch(`/api/materiais/${id}`, { method: 'DELETE' }); if (r.ok) carregarMateriaisDoServidor();
 }
 
 function carregarMaterialEdicao(id) {
@@ -157,28 +165,64 @@ function carregarMaterialEdicao(id) {
     document.getElementById('materialCustoUn').value = m.custo_unitario; document.getElementById('materialUnidade').value = m.unidade_medida;
     document.getElementById('btnSalvarMaterial').innerText = "Salvar Alteracoes";
 }
+
+async function carregarProdutosMestreDoServidor() {
+    const r = await fetch('/api/produtos');
+    if (r.ok) {
+        listaProdutosMestre = await r.json(); const tbody = document.querySelector('#tabelaProdutosMestre tbody'); if (!tbody) return; tbody.innerHTML = '';
+        listaProdutosMestre.forEach(p => {
+            const tr = document.createElement('tr'); tr.innerHTML = `<td><strong>${p.codigo_produto}</strong></td><td>${p.nome_produto}</td><td><button onclick="carregarProdutoMestreEdicao(${p.id},'${p.codigo_produto}','${p.nome_produto}')" class="btn-alt">Alterar</button><button onclick="deletarProdutoMestre(${p.id})" class="btn-del">Deletar</button></td>`; tbody.appendChild(tr);
+        });
+    }
+}
+
+
+
+
+
+async function salvarProdutoMestre() {
+    const id = document.getElementById('prodMestreIdOculto').value; const cod = document.getElementById('prodMestreCodigo').value.trim();
+    const nome = document.getElementById('prodMestreNome').value.trim(); if (!cod || !nome) return; const m = id ? 'PUT' : 'POST';
+    const r = await fetch('/api/produtos', { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, codigo_produto: cod, nome_produto: nome }) });
+    if (r.ok) { document.getElementById('prodMestreIdOculto').value = ''; document.getElementById('prodMestreCodigo').value = ''; document.getElementById('prodMestreNome').value = ''; carregarProdutosMestreDoServidor(); }
+}
+
+function carregarProdutoMestreEdicao(id, cod, nome) {
+    document.getElementById('prodMestreIdOculto').value = id; document.getElementById('prodMestreCodigo').value = cod; document.getElementById('prodMestreNome').value = nome;
+    const b = document.getElementById('btnSalvarProdMestre'); if (b) b.innerText = "Salvar Alterações";
+}
+
+async function deletarProdutoMestre(id) {
+    if (!confirm("Excluir produto apagará roteiros e vendas no SQL! Confirma?")) return;
+    const r = await fetch(`/api/produtos/${id}`, { method: 'DELETE' }); if (r.ok) carregarProdutosMestreDoServidor();
+}
+
 async function carregarProcessosEAtivosFabrica() {
-    const select = document.getElementById('procSelecaoMaquina'); if (!select) return;
-    const response = await fetch('/api/maquinas');
-    if (response.ok) {
-        parqueMaquinas = await response.json(); select.innerHTML = '<option value="">-- Selecione uma máquina --</option>';
-        parqueMaquinas.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.nome_maquina; select.appendChild(o); });
+    const selProd = document.getElementById('procSelecaoProduto'); const selMaq = document.getElementById('procSelecaoMaquina'); if (!selProd || !selMaq) return;
+    const r1 = await fetch('/api/produtos');
+    if (r1.ok) {
+        listaProdutosMestre = await r1.json(); selProd.innerHTML = '<option value="">-- Selecione o Produto --</option>';
+        listaProdutosMestre.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `[${p.codigo_produto}] - ${p.nome_produto}`; selProd.appendChild(o); });
+    }
+    const r2 = await fetch('/api/maquinas');
+    if (r2.ok) {
+        parqueMaquinas = await r2.json(); selMaq.innerHTML = '<option value="">-- Selecione a Máquina --</option>';
+        parqueMaquinas.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.nome_maquina; selMaq.appendChild(o); });
     }
     carregarRoteirosPcpDoServidor();
 }
 
 async function carregarRoteirosPcpDoServidor() {
-    const response = await fetch('/api/processos'); if (response.ok) { listaProcessosPcp = await response.json(); renderizarTabelaProcessosPcp(); }
+    const r = await fetch('/api/processos'); if (r.ok) { listaProcessosPcp = await r.json(); renderizarTabelaProcessosPcp(); }
 }
 
 async function adicionarProcessoPcpServidor() {
-    const id_proc = document.getElementById('processoIdOculto').value; const codigo_produto = document.getElementById('procCodigoProd').value.trim();
-    const nome_produto = document.getElementById('procNomeProd').value.trim(); const maquina_id = document.getElementById('procSelecaoMaquina').value;
-    const tempo_ciclo_min = parseFloat(document.getElementById('procTempoCiclo').value) || 0; const tempo_setup_min = parseFloat(document.getElementById('procTempoSetup').value) || 0;
-    const lote_padrao = parseInt(document.getElementById('procLotePadrao').value) || 100;
-    if (!codigo_produto || !nome_produto || !maquina_id) return; const metodo = id_proc ? 'PUT' : 'POST';
-    const response = await fetch('/api/processos', { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id_proc, codigo_produto, nome_produto, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao }) });
-    if (response.ok) { document.getElementById('processoIdOculto').value = ''; document.getElementById('procCodigoProd').value = ''; document.getElementById('procNomeProd').value = ''; document.getElementById('btnSalvarProcesso').innerText = "Salvar e Codificar Produto"; carregarRoteirosPcpDoServidor(); }
+    const id_proc = document.getElementById('processoIdOculto').value; const produto_id = document.getElementById('procSelecaoProduto').value;
+    const maquina_id = document.getElementById('procSelecaoMaquina').value; const tempo_ciclo_min = parseFloat(document.getElementById('procTempoCiclo').value) || 0;
+    const tempo_setup_min = parseFloat(document.getElementById('procTempoSetup').value) || 0; const lote_padrao = parseInt(document.getElementById('procLotePadrao').value) || 100;
+    if (!produto_id || !maquina_id) return; const m = id_proc ? 'PUT' : 'POST';
+    const r = await fetch('/api/processos', { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id_proc, produto_id, maquina_id, tempo_ciclo_min, tempo_setup_min, lote_padrao }) });
+    if (r.ok) { document.getElementById('processoIdOculto').value = ''; document.getElementById('btnSalvarProcesso').innerText = "Salvar Roteiro"; carregarRoteirosPcpDoServidor(); }
 }
 
 function renderizarTabelaProcessosPcp() {
@@ -190,15 +234,14 @@ function renderizarTabelaProcessosPcp() {
 
 async function deletarProcessoServidor(id) {
     if (!confirm("Excluir roteiro?")) return;
-    const response = await fetch(`/api/processos/${id}`, { method: 'DELETE' }); if (response.ok) carregarRoteirosPcpDoServidor();
+    const r = await fetch(`/api/processos/${id}`, { method: 'DELETE' }); if (r.ok) carregarRoteirosPcpDoServidor();
 }
 
 function carregarProcessoEdicao(id) {
     const p = listaProcessosPcp.find(i => i.id === id); document.getElementById('processoIdOculto').value = p.id;
-    document.getElementById('procCodigoProd').value = p.codigo_produto; document.getElementById('procNomeProd').value = p.nome_produto;
-    document.getElementById('procSelecaoMaquina').value = p.maquina_id; document.getElementById('procTempoCiclo').value = p.tempo_cycle_min;
-    document.getElementById('procTempoSetup').value = p.tempo_setup_min; document.getElementById('procLotePadrao').value = p.lote_padrao;
-    document.getElementById('btnSalvarProcesso').innerText = "Salvar Alteracoes";
+    document.getElementById('procSelecaoProduto').value = p.produto_id; document.getElementById('procSelecaoMaquina').value = p.maquina_id;
+    document.getElementById('procTempoCiclo').value = p.tempo_cycle_min; document.getElementById('procTempoSetup').value = p.tempo_setup_min;
+    document.getElementById('procLotePadrao').value = p.lote_padrao; document.getElementById('btnSalvarProcesso').innerText = "Salvar Alteracoes";
 }
 
 function carregarEMotorCustoGlobal() { const t = parseFloat(localStorage.getItem('custoTotalProcessos')) || 150; document.getElementById('custoTotal').value = t.toFixed(2); }
@@ -206,27 +249,27 @@ function ajustarMargemPorCanal() { const c = document.getElementById('canalPreco
 
 async function calcularPrecovenda() {
     const custo_total = document.getElementById('custoTotal').value; const margem_lucro = document.getElementById('lucro').value; const impostos = document.getElementById('impostosInput').value;
-    const response = await fetch('/api/calculo-markup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ custo_total, margem_lucro, impostos }) });
-    if (response.ok) { const d = await response.json(); localStorage.setItem('lucroPorPecaGlobal', (d.preco_venda - parseFloat(custo_total)).toString()); document.getElementById('resultado').innerHTML = `<h3>Preço Final: R$ ${d.preco_venda}</h3>`; document.getElementById('resultado').style.display = 'block'; }
+    const r = await fetch('/api/calculo-markup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ custo_total, margem_lucro, impostos }) });
+    if (r.ok) { const d = await r.json(); localStorage.setItem('lucroPorPecaGlobal', (d.preco_venda - parseFloat(custo_total)).toString()); document.getElementById('resultado').innerHTML = `<h3>Preço Final: R$ ${d.preco_venda}</h3>`; document.getElementById('resultado').style.display = 'block'; }
 }
 
 async function carregarModuloVendasEPlanejamento() {
     const select = document.getElementById('vendaSelecaoProduto'); if (!select) return;
-    const response = await fetch('/api/processos');
-    if (response.ok) {
-        listaProcessosPcp = await response.json(); select.innerHTML = '<option value="">-- Selecione o Produto --</option>';
-        listaProcessosPcp.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `[${p.codigo_produto}] - ${p.nome_produto}`; select.appendChild(o); });
+    const r = await fetch('/api/produtos');
+    if (r.ok) {
+        listaProdutosMestre = await r.json(); select.innerHTML = '<option value="">-- Selecione o Produto --</option>';
+        listaProdutosMestre.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `[${p.codigo_produto}] - ${p.nome_produto}`; select.appendChild(o); });
     }
     carregarPedidosVendasDoServidor();
 }
 
-async function carregarPedidosVendasDoServidor() { const response = await fetch('/api/vendas'); if (response.ok) { carteiraPedidosVendas = await response.json(); renderizarTabelaPedidosVendas(); } }
+async function carregarPedidosVendasDoServidor() { const r = await fetch('/api/vendas'); if (r.ok) { carteiraPedidosVendas = await r.json(); renderizarTabelaPedidosVendas(); } }
 
 async function emitirPedidoComercialVenda() {
     const pid = document.getElementById('vendaSelecaoProduto').value; const q = parseInt(document.getElementById('vendaQuantidade').value) || 0; const c = document.getElementById('vendaCliente').value.trim();
     if (!pid || q <= 0 || !c) return;
-    const response = await fetch('/api/vendas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ processo_id: pid, quantidade: q, cliente: c }) });
-    if (response.ok) { document.getElementById('vendaCliente').value = ''; carregarPedidosVendasDoServidor(); }
+    const r = await fetch('/api/vendas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto_id: pid, quantidade: q, cliente: c }) });
+    if (r.ok) { document.getElementById('vendaCliente').value = ''; carregarPedidosVendasDoServidor(); }
 }
 
 function renderizarTabelaPedidosVendas() {
