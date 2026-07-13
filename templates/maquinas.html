@@ -5,6 +5,7 @@
     <h2 id="tit-maquinas">Gestão de Ativos & Eficiência Energética Metalúrgica</h2>
     <p>Cadastre e altere os parâmetros operacionais, ciclo de manutenção preventiva e consumo elétrico em kW para cálculo do custo-minuto.</p>
     
+    <!-- Campo oculto para controle de ID nas operações de alteração/edição -->
     <input type="hidden" id="maquinaIdOculto" value="">
 
     <div class="grid-form">
@@ -49,9 +50,11 @@
         <label for="maquinaPrev">Data para Próxima Manutenção Preventiva:</label>
         <input type="date" id="maquinaPrev" value="2026-12-20">
         
+        <!-- Botão acionando o gatilho JavaScript unificado -->
         <button onclick="adicionarMaquinaServidor()" class="btn-primary" id="btnSalvarAtivo" style="margin-top: 15px;">Salvar e Registrar Ativo no PostgreSQL</button>
     </div>
 
+    <!-- Tabela preenchida dinamicamente pelo método renderizarTabelaMaquinas() do main.js -->
     <table class="data-table" id="tabelaMaquinas">
         <thead>
             <tr>
@@ -63,7 +66,9 @@
                 <th>Ações de Controle</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+            <!-- As linhas <tr> serão construídas de forma assíncrona pelo JavaScript -->
+        </tbody>
     </table>
     <div id="resultadoAtivo" class="result-box" style="display:none;" role="region" aria-live="polite"></div>
 </section>
