@@ -1,8 +1,13 @@
 import sqlite3
 import os
 from flask import Flask, render_template, request, redirect, url_for
+from whitenoise import WhiteNoise
 
 app = Flask(__name__)
+
+# ATIVAÇÃO DO WHITENOISE: Garante o carregamento do CSS e JS no Render
+app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/')
+
 DATABASE = 'database.db'
 
 def get_db():
@@ -10,7 +15,7 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# RESOLUÇÃO DO ERRO 500: Cria o banco de dados dinamicamente no Render
+# CRIAÇÃO DO BANCO AUTOMÁTICA: Roda na primeira requisição recebida pelo servidor
 @app.before_request
 def init_db_on_start():
     if not os.path.exists(DATABASE):
@@ -135,7 +140,7 @@ def terreno():
         impostos = request.form.get('impostos_anuais')
         
         db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impostos_anuais) VALUES (?, ?, ?)", 
-                   (descricao, valor, impostos))
+                   (descricao, valor, impuestos))
         db.commit()
         return redirect(url_for('terreno'))
         
