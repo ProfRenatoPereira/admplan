@@ -1,60 +1,57 @@
 {% extends 'base.html' %}
+
+{% block title %}Roteiros de Fabricação - TERCEIRO ADM ASSOCIADOS{% endblock %}
+
 {% block content %}
-<div class="container-gestao">
-    <h2>Engenharia de Processos & Tempos (MOD)</h2>
+<section class="card" aria-labelledby="tit-roteiro">
+    <h2 id="tit-roteiro">Engenharia de Processos & Alocação de Tempo de Máquina</h2>
+    <p>Monte o roteiro operacional das peças vinculando os tempos de ciclo e preparação (set-up) ao custo minuto dos ativos.</p>
     
-    <form method="POST" action="/processos" class="form-corporativo">
+    <div class="grid-form">
         <div class="form-group">
-            <label>Selecione o Produto para Roteamento:</label>
-            <select name="produto_id" required>
-                <option value="">-- Escolha o Produto Base --</option>
-                {% for produto in produtos %}
-                <option value="{{ produto.id }}">{{ produto.part_number }} - {{ produto.descricao }}</option>
-                {% endfor %}
+            <label for="procSelecaoMaquina">Selecione o Equipamento Industrial:</label>
+            <select id="procSelecaoMaquina">
+                <!-- Populado automaticamente do banco via JavaScript -->
             </select>
-        </div>
 
-        
-        <div class="form-group">
-            <label>Nome da Operação / Posto de Trabalho:</label>
-            <input type="text" name="nome_operacao" required placeholder="Ex: Dobra CNC, Solda Robotizada">
-        </div>
-        
-        <div class="form-group">
-            <label>Tempo Padrão (segundos):</label>
-            <input type="number" name="tempo" required placeholder="Ex: 45">
-        </div>
-        
-        <div class="form-group">
-            <label>Custo da Mão de Obra Direta (R$/Hora):</label>
-            <input type="number" step="0.01" name="custo_mod" required placeholder="Ex: 22.50">
-        </div>
-        
-        <button type="submit" class="btn-salvar">Salvar Roteiro de Processo</button>
-    </form>
+            <label for="procTempoOperacao">Tempo de Máquina / Ciclo por Peça (Minutos):</label>
+            <input type="number" id="procTempoOperacao" value="15">
 
-    <div class="tabela-container">
-        <h3>Roteiros de Produção Ativos</h3>
-        <table class="tabela-dados">
-            <thead>
-                <tr>
-                    <th>Produto Relacionado</th>
-                    <th>Operação</th>
-                    <th>Tempo Operacional</th>
-                    <th>Custo MOD Estimado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for proc in processos %}
-                <tr>
-                    <td>{{ proc.part_number }} - {{ proc.descricao }}</td>
-                    <td>{{ proc.nome_operacao }}</td>
-                    <td>{{ proc.tempo_segundos }} segundos</td>
-                    <td>R$ {{ "%.2f"|format(proc.custo_mod) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <label for="procTempoSetup">Tempo de Preparação / Set-up (Minutos):</label>
+            <input type="number" id="procTempoSetup" value="30">
+        </div>
+        
+        <div class="form-group">
+            <label for="procSalarioMod">Salário Base Mensal do Operador (R$):</label>
+            <input type="number" id="procSalarioMod" value="3000">
+
+            <label for="procEncargosPercentual">Encargos Sociais + Benefícios Industriais (%):</label>
+            <input type="number" id="procEncargosPercentual" value="85">
+
+            <label for="procLoteTamanho">Tamanho do Lote de Produção Padronizado (Peças):</label>
+            <input type="number" id="procLoteTamanho" value="100">
+
+            <button onclick="adicionarEtapaProcesso()" class="btn-primary" style="margin-top: 10px;">Inserir Operação no PCP</button>
+        </div>
     </div>
-</div>
+
+    <table class="data-table" id="tabelaProcessos">
+        <thead>
+            <tr>
+                <th>Operação / Máquina</th>
+                <th>Ciclo (Min)</th>
+                <th>Custo Minuto Máquina</th>
+                <th>Set-up Rateado (Min)</th>
+                <th>Custo MOD Acumulado</th>
+                <th>Total da Etapa</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <div class="total-box" style="background-color: #fef9e7; border-left-color: #f39c12;">
+        <strong>Custo de Processamento da Peça: R$ <span id="totalProcessoCusto">0.00</span></strong>
+    </div>
+</section>
 {% endblock %}
