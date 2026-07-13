@@ -3,104 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERCEIRO ADM ASSOCIADOS - Simulador Corporativo</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="preconnect" href="https://googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>{% block title %}TERCEIRO ADM ASSOCIADOS{% endblock %}</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="../static/css/style.css">
 </head>
 <body>
 
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="nav-logo">TERADMAS</a>
-            <ul class="nav-menu">
+    <div class="skip-links"><a href="#main-content">Ir para o conteúdo principal</a></div>
+
+    <!-- Ferramentas Visuais e Auditivas de Acessibilidade -->
+    <div class="accessibility-bar" role="toolbar" aria-label="Ferramentas de Acessibilidade">
+        <button onclick="toggleContraste()" aria-label="Alternar Alto Contraste">🌓 Alto Contraste</button>
+        <button onclick="alterarFonte(1)" aria-label="Aumentar tamanho do texto">A+</button>
+        <button onclick="alterarFonte(-1)" aria-label="Diminuir tamanho do texto">A-</button>
+    </div>
+
+    <!-- Header Corporativo Institucional -->
+    <header class="navbar-corporate" role="banner">
+        <div class="header-main-row">
+            <div class="logo-container">
+                <img src="../static/images/logo.png" alt="Logo Teradmas Desde 2019" class="brand-logo">
+            </div>
+            <div class="header-text-container">
+                <h1>TERCEIRO ADM ASSOCIADOS</h1>
+                <p>Projetos, Execução, Assessoria, Auditoria e Gerenciamento Operacional e de Custos</p>
+            </div>
+            <button class="menu-toggle" aria-label="Abrir Menu" aria-controls="navMenu" aria-expanded="false" id="menuToggle">
+                <span class="bar" aria-hidden="true"></span>
+                <span class="bar" aria-hidden="true"></span>
+                <span class="bar" aria-hidden="true"></span>
+            </button>
+        </div>
+        
+        <nav class="nav-menu-corporate" id="navMenu" aria-label="Menu Principal">
+            <ul class="nav-links">
                 <li><a href="/">Início</a></li>
                 <li class="dropdown">
-                    <a href="#" class="dropbtn">1. Estrutura ▾</a>
-                    <div class="dropdown-content">
-                        <a href="/terreno">Instalações Imobiliárias</a>
-                        <a href="/maquinas">Ativos & Máquinas CNC</a>
-                    </div>
+                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">1. Estrutura ▾</button>
+                    <ul class="dropdown-menu">
+                        <li><a href="/terreno">Instalações Imobiliárias</a></li>
+                        <li><a href="/maquinas">Ativos & Máquinas CNC</a></li>
+                    </ul>
                 </li>
                 <li class="dropdown">
-                    <a href="#" class="dropbtn">2. Processos & MOD ▾</a>
-                    <div class="dropdown-content">
-                        <a href="/processos">Roteiro & Tempos</a>
-                        <a href="/materiais">Matéria-Prima & Insumos</a>
-                    </div>
+                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">2. Processos & MOD ▾</button>
+                    <ul class="dropdown-menu">
+                        <li><a href="/processos">Roteiro & Tempos</a></li>
+                        <li><a href="/materiais">Matéria-Prima & Insumos</a></li>
+                    </ul>
                 </li>
                 <li class="dropdown">
-                    <a href="#" class="dropbtn">3. Finanças & ROI ▾</a>
-                    <div class="dropdown-content">
-                        <a href="/precificacao">Mark-up Individual</a>
-                        <a href="/vendas">Planejamento de Vendas</a>
-                        <a href="/retorno">Retorno Acionistas</a>
-                    </div>
+                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">3. Finanças & ROI ▾</button>
+                    <ul class="dropdown-menu">
+                        <li><a href="/precificacao">Mark-up Individual</a></li>
+                        <li><a href="/retorno">Retorno Acionistas</a></li>
+                    </ul>
                 </li>
             </ul>
-        </div>
-    </nav>
+        </nav>
+    </header>
 
-    <main class="main-container">
-        <div class="content-card">
-            {% block content %}{% endblock %}
-        </div>
+    <!-- Conteúdo Dinâmico das Páginas Filhas -->
+    <main class="container" id="main-content" tabindex="-1">
+        {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer-global">
-        <p>&copy; 2026 TERCEIRO ADM ASSOCIADOS - Programa de Gestão Empresarial Avançada.</p>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="../static/js/main.js"></script>
 </body>
 </html>
-{% extends 'base.html' %}
-{% block content %}
-<div class="container-gestao">
-    <h2>Ativos Produtivos & Máquinas CNC</h2>
-    
-    <form method="POST" action="/maquinas" class="form-corporativo">
-        <div class="form-group">
-            <label>Identificação do Equipamento:</label>
-            <input type="text" name="nome_maquina" required placeholder="Ex: Centro de Usinagem CNC">
-        </div>
-        
-        <div class="form-group">
-            <label>Valor de Compra de Fábrica (R$):</label>
-            <input type="number" step="0.01" name="valor_compra" required placeholder="0.00">
-        </div>
-        
-        <div class="form-group">
-            <label>Taxa de Depreciação Fixa (% ao ano):</label>
-            <input type="number" step="0.1" name="depreciacao_anual" required placeholder="Ex: 10.0">
-        </div>
-        
-        <button type="submit" class="btn-salvar">Salvar Ativo no SQL</button>
-    </form>
-
-    <div class="tabela-container">
-        <h3>Inventário de Máquinas e Equipamentos</h3>
-        <table class="tabela-dados">
-            <thead>
-                <tr>
-                    <th>Equipamento</th>
-                    <th>Valor Histórico</th>
-                    <th>Depreciação Anual</th>
-                    <th>Perda de Valor Estimada</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for maq in maquinas %}
-                <tr>
-                    <td>{{ maq.nome_maquina }}</td>
-                    <td>R$ {{ "%.2f"|format(maq.valor_compra) }}</td>
-                    <td>{{ maq.depreciacao_anual }}%</td>
-                    <td style="color: #d9534f; font-weight: bold;">- R$ {{ "%.2f"|format(maq.valor_compra * (maq.depreciacao_anual / 100)) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
