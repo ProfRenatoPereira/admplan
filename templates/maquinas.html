@@ -1,51 +1,114 @@
-<!-- Certifique-se de que a tag form possui o action e o method -->
-<form action="/maquinas" method="POST">
+function adicionarInsumo() {
+    const nome = document.getElementById('insumoNome').value.trim();
+    const qtd = parseFloat(document.getElementById('insumoQtd').value) || 0;
+    const custoUn = parseFloat(document.getElementById('insumoCustoUn').value) || 0;
+    if (!nome || qtd <= 0 || custoUn <= 0) return;
+
+    listaInsumos = JSON.parse(localStorage.getItem('listaInsumos')) || [];
+    listaInsumos.push({ id: Date.now(), nome, qtd, custoUn, subtotal: qtd * custoUn });
+    localStorage.setItem('listaInsumos', JSON.stringify(listaInsumos));
+    renderizarTabelaInsumos();
+}
+
+// ============================================================================
+// 5. MÓDULO DE INSUMOS E CUSTO GLOBAL (PÁGINA: materiais.html / retorno.html)
+// ============================================================================
+function renderizarTabelaInsumos() {
+    const tbody = document.querySelector('#tabelaInsumos tbody');
+    if (!tbody) return;
+    listaInsumos = JSON.parse(localStorage.getItem('listaInsumos')) || [];
+    tbody.innerHTML = ''; let total = 0;
     
-    <!-- Exemplo de inputs com a tag 'name' configurada -->
-    <input type="text" name="nome_equipamento" placeholder="Ex: Torno CNC" required>
-    <input type="number" name="custo_manutencao" step="0.01" required>
-    <input type="number" name="valor_aquisicao" step="0.01" required>
-    <input type="number" name="horas_operacionais" required>
-    <input type="number" name="vida_util" required>
-    <input type="number" name="potencia_eletrica" step="0.1" required>
-    <input type="number" name="valor_residual" step="0.01" required>
-    <input type="number" name="tarifa_energia" step="0.01" required>
-    <input type="date" name="data_aquisicao" required>
-    <input type="number" name="diametro_maximo" step="0.1">
-    <input type="number" name="comprimento_maximo" step="0.1">
-    <input type="date" name="proxima_manutencao">
+    listaInsumos.forEach(item => {
+        total += item.subtotal; const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${item.nome}</td><td>${item.qtd}</td><td>R$ ${item.custoUn.toFixed(2)}</td><td>R$ ${item.subtotal.toFixed(2)}</td><td><button onclick="removerInsumo(${item.id})">X</button></td>`;
+        tbody.appendChild(tr);
+    });
+    const elTotalMaterial = document.getElementById('totalMaterialCusto');
+    if (elTotalMaterial) elTotalMaterial.innerText = total.toFixed(2);
+    localStorage.setItem('custoTotalInsumos', total.toString());
+}
 
-    <!-- O botão precisa ser do tipo submit -->
-    <button type="submit" class="btn-salvar">Salvar e Registrar Ativo</button>
-</form>
+function removerInsumo(id) {
+    listaInsumos = JSON.parse(localStorage.getItem('listaInsumos')) || [];
+    listaInsumos = listaInsumos.filter(i => i.id !== id);
+    localStorage.setItem('listaInsumos', JSON.stringify(listaInsumos));
+    renderizarTabelaInsumos();
+}
 
-<!-- Estrutura da Tabela para listar os equipamentos cadastrados -->
-<table>
-    <thead>
-        <tr>
-            <th>Equipamento</th>
-            <th>Capacidade Física</th>
-            <th>Potência</th>
-            <th>Próxima Preventiva</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Loop do Flask (Jinja2) para renderizar os dados vindos do banco -->
-        {% for maquina in maquinas %}
-        <tr>
-            <td>{{ maquina['nome_equipamento'] }}</td>
-            <td>{{ maquina['diametro_maximo'] }}x{{ maquina['comprimento_maximo'] }} mm</td>
-            <td>{{ maquina['potencia_eletrica'] }} kW</td>
-            <td>{{ maquina['proxima_manutencao'] }}</td>
-            <td>
-                <a href="/maquinas/excluir/{{ maquina['id'] }}">Excluir</a>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="5" style="text-align: center;">Nenhuma máquina cadastrada no momento.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+function carregarEMotorCustoGlobal() {
+    const campoCustoTotalInput = document.getElementById('custoTotal');
+    if (!campoCustoTotalInput) return;
+
+    const totalProcessos = parseFloat(localStorage.getItem('custoTotalProcessos')) || 0;
+    const totalInsumos = parseFloat(localStorage.getItem('custoTotalInsumos')) || 0;
+    const custoMinutoImobiliario = parseFloat(localStorage.getItem('custoMinutoImobiliario')) || 0;
+    
+    let rotas = JSON.parse(localStorage.getItem('listaProcessos')) || [];
+    let tempoTotalMinutos = 0; rotas.forEach(p => { tempoTotalMinutos += (p.tempoOperacao + p.tempoSetupRateado); });
+
+    const rateioImobiliario = tempoTotalMinutos * custoMinutoImobiliario;
+    let custoIndustrialAcumulado = totalProcessos + totalInsumos + rateioImobiliario;
+    
+    if (custoIndustrialAcumulado === 0 && totalInsumos > 0) custoIndustrialAcumulado = totalInsumos;
+    campoCustoTotalInput.value = custoIndustrialAcumulado.toFixed(2);
+}
+
+function ajustarMargemPorCanal() {
+    const canal = document.getElementById('canalPreco').value;
+    const elLucro = document.getElementById('lucro');
+    if (elLucro) elLucro.value = canal === 'atacado' ? "15" : "25";
+}
+
+async function calcularPrecovenda() {
+    const custo_total = document.getElementById('custoTotal').value;
+    const margem_lucro = document.getElementById('lucro').value;
+    const impostos = document.getElementById('impostosInput').value;
+
+    const response = await fetch('/api/calculo-markup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custo_total, margem_lucro, impostos })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('lucroPorPecaGlobal', (data.preco_venda - parseFloat(custo_total)).toString());
+        const elResultado = document.getElementById('resultado');
+        if (elResultado) {
+            elResultado.innerHTML = `<p style='font-weight:bold; color:#16a085;'>Preço Final Sugerido pela Consultoria: R$ ${data.preco_venda}</p>`;
+            elResultado.style.display = 'block';
+        }
+    }
+}
+
+async function calcularTempoRetorno() {
+    const volumeVendasMensal = parseInt(document.getElementById('retVendasMensais').value) || 0;
+    const despesasAdministrativas = parseFloat(document.getElementById('retDespesasFixas').value) || 0;
+    const investimentoImobiliario = parseFloat(localStorage.getItem('totalInvestidoEstrutura')) || 0;
+    
+    let totalPrecoMaquinas = 0;
+    try {
+        const response = await fetch('/api/maquinas');
+        if (response.ok) {
+            const maqBanco = await response.json();
+            totalPrecoMaquinas = maqBanco.reduce((acc, curr) => acc + parseFloat(curr.preco_compra || curr.preco || 0), 0);
+        }
+    } catch (err) {
+        console.error("Erro ao computar investimento em ativos fixos: ", err);
+    }
+    
+    const investimentoTotalInicial = investimentoImobiliario + totalPrecoMaquinas;
+    const lucroPorPecaGlobal = parseFloat(localStorage.getItem('lucroPorPecaGlobal')) || 0;
+
+    const box = document.getElementById('resultadoRetorno');
+    if (!box) return; box.style.display = "block";
+
+    if (investimentoTotalInicial <= 0 || lucroPorPecaGlobal <= 0) {
+        box.innerHTML = "<p style='color:#e74c3c;'>Configure o investimento e o preço de venda primeiro.</p>";
+        return;
+    }
+    const lucroLiquidoMensal = (volumeVendasMensal * lucroPorPecaGlobal) - despesasAdministrativas;
+    
+    if (lucroLiquidoMensal <= 0) { box.innerHTML = "<p style='color:#e74c3c;'>Lucro insuficiente com o volume de vendas atual para cobrir as despesas fixas.</p>"; return; }
+    box.innerHTML = `<p>O investimento inicial totalizado de R$ ${investimentoTotalInicial.toFixed(2)} retornará em aproximadamente <strong>${(investimentoTotalInicial / lucroLiquidoMensal).toFixed(1)} meses</strong>.</p>`;
+}
