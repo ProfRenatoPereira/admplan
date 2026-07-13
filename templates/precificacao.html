@@ -1,56 +1,34 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="container-gestao">
-    <h2>Formação de Preço & Mark-up Individual</h2>
-    
-    <form method="POST" action="/precificacao" class="form-corporativo">
-        <div class="form-group">
-            <label>Definir Preço para o Produto:</label>
-            <select name="produto_id" required>
-                <option value="">-- Escolha o Item --</option>
-                {% for produto in produtos %}
-                <option value="{{ produto.id }}">{{ produto.part_number }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label>Margem de Lucro Desejada (%):</label>
-            <input type="number" step="0.1" name="margem_lucro" required placeholder="Ex: 35">
-        </div>
-        
-        <div class="form-group">
-            <label>Alíquota de Impostos Automatizada (%):</label>
-            <input type="number" step="0.1" name="impostos" required placeholder="Ex: 18">
-        </div>
-        
-        <button type="submit" class="btn-salvar">Calcular e Salvar Preço</button>
-    </form>
 
-    <div class="tabela-container">
-        <h3>Simulador de Preço de Venda</h3>
-        <table class="tabela-dados">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Custo Mat.</th>
-                    <th>Custo MOD</th>
-                    <th>Margem</th>
-                    <th>Preço Sugerido</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pre in precificacoes %}
-                <tr>
-                    <td>{{ pre.part_number }}</td>
-                    <td>R$ {{ "%.2f"|format(pre.custo_mat) }}</td>
-                    <td>R$ {{ "%.2f"|format(pre.custo_mod) }}</td>
-                    <td>{{ pre.margem_lucro }}%</td>
-                    <td style="color: #2e7d32; font-weight: bold;">R$ {{ "%.2f"|format((pre.custo_mat + pre.custo_mod) * (1 + pre.margem_lucro/100) * (1 + pre.impostos/100)) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% block title %}Engenharia de Materiais - TERCEIRO ADM ASSOCIADOS{% endblock %}
+
+{% block content %}
+<section class="card" aria-labelledby="tit-materias">
+    <h2 id="tit-materias">Estrutura de Produto (BOM) & Matéria-Prima</h2>
+    <p>Adicione tarugos, componentes, consumíveis e insumos diversos associados à fabricação unitária do item.</p>
+    
+    <div class="inline-form">
+        <input type="text" id="insumoNome" placeholder="Descrição do Material (Ex: Aço SAE 1045)">
+        <input type="number" id="insumoQtd" placeholder="Quantidade">
+        <input type="number" id="insumoCustoUn" placeholder="Custo Unitário (R$)">
+        <button onclick="adicionarInsumo()" class="btn-primary">+ Adicionar Insumo</button>
     </div>
-</div>
+
+    <table class="data-table" id="tabelaInsumos">
+        <thead>
+            <tr>
+                <th>Componente / Insumo</th>
+                <th>Quantidade Utilizada</th>
+                <th>Custo Unitário</th>
+                <th>Subtotal do Item</th>
+                <th>Remover</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <div class="total-box">
+        <strong>Custo Acumulado de Materiais: R$ <span id="totalMaterialCusto">0.00</span></strong>
+    </div>
+</section>
 {% endblock %}
