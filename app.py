@@ -82,3 +82,68 @@ def materiais():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
+
+
+
+# ROTA: PRECIFICAÇÃO E MARK-UP INDIVIDUAL
+@app.route('/precificacao', methods=['GET', 'POST'])
+def precificacao():
+    db = get_db()
+    if request.method == 'POST':
+        produto_id = request.form.get('produto_id')
+        margem_lucro = request.form.get('margem_lucro') # em %
+        impostos = request.form.get('impostos') # em %
+        
+        db.execute("INSERT INTO precificacao (produto_id, margem_lucro, impostos) VALUES (?, ?, ?)", 
+                   (produto_id, margem_lucro, impostos))
+        db.commit()
+        return redirect(url_for('precificacao'))
+        
+    produtos = db.execute("SELECT * FROM produtos").fetchall()
+    
+    # Lógica Avançada: Puxa custos de processos e materiais para calcular o preço sugerido automaticamente
+    dados_precificacao = db.execute("""
+        SELECT pr.id, prod.part_number, prod.descricao,
+               COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as custo_mat,
+               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processos p WHERE p.produto_id = prod.id), 0) as custo_mod,
+               pr.margem_lucro, pr.impostos
+        FROM precificacao pr
+        JOIN produtos prod ON pr.produto_id = prod.id
+    """).fetchall()
+    
+    return render_template('precificacao.html', produtos=produtos, precificacoes=dados_precificacao)
+
+# ROTA: ENGENHARIA DE VENDAS
+@app.route('/vendas', methods=['GET', 'POST'])
+def vendas():
+    db = get_db()
+    if request.method == 'POST':
+        produto_id = request.form.get('produto_id')
+        quantidade_meta = request.form.get('quantidade_meta')
+        
+        db.execute("INSERT INTO vendas (produto_id, quantidade_meta) VALUES (?, ?)", 
+                   (produto_id, quantidade_meta))
+        db.commit()
+        return redirect(url_for('vendas'))
+        
+    produtos = db.execute("SELECT * FROM produtos").fetchall()
+    vendas_salvas = db.execute("""
+        SELECT v.*, prod.part_number, prod.descricao 
+        FROM vendas v 
+        JOIN produtos prod ON v.produto_id = prod.id
+    """).fetchall()
+    return render_template('vendas.html', produtos=produtos, vendas=vendas_salvas)
+
+# ROTA: FINANÇAS & RETORNO ACIONISTAS (ROI)
+@app.route('/retorno')
+def retorno():
+    db = get_db()
+    # Consolida os dados corporativos para a prestação de contas pedagógica
+    indicadores = db.execute("""
+        SELECT prod.part_number, prod.descricao, v.quantidade_meta,
+               COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as mat_total,
+               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processos p WHERE p.produto_id = prod.id), 0) as mod_total
+        FROM produtos prod
+        JOIN vendas v ON v.produto_id = prod.id
+    """).fetchall()
+    return render_template('retorno.html', indicadores=indicadores)
