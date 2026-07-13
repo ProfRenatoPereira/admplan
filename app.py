@@ -139,8 +139,9 @@ def terreno():
         valor = request.form.get('valor_aquisicao')
         impostos = request.form.get('impostos_anuais')
         
+        # Corrigido em definitivo: a variável e a coluna batem com o banco de dados
         db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impostos_anuais) VALUES (?, ?, ?)", 
-                   (descricao, valor, impuestos))
+                   (descricao, valor, impostos))
         db.commit()
         return redirect(url_for('terreno'))
         
@@ -175,7 +176,7 @@ def retorno():
         FROM produtos prod
         JOIN vendas v ON v.produto_id = prod.id
     """).fetchall()
-    return render_template('retorno.html', indicadores=indicadores)
+    return render_template('retorno.html', indicators=indicadores)
 
 if __name__ == '__main__':
     app.run(debug=True)
