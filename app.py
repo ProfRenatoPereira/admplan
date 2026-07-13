@@ -1,10 +1,11 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request, render_template_string
+from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
+# CONEXAO PERMANENTE COM O BANCO DE DADOS POSTGRESQL DO RENDER
 def obter_conexao_db():
     url_banco = os.environ.get('DATABASE_URL')
     if url_banco:
@@ -18,16 +19,27 @@ def inicializar_banco():
     if conn:
         try:
             cursor = conn.cursor()
-            if os.path.exists('schema.sql'):
-                with open('schema.sql', 'r', encoding='utf-8') as f:
-                    cursor.execute(f.read())
-                conn.commit()
+            # Criação da tabela imobiliária flexível e isolada
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS imobiliario_isolado (
+                    id SERIAL PRIMARY KEY,
+                    descricao VARCHAR(150) NOT NULL,
+                    valor_capital NUMERIC(12,2) NOT NULL,
+                    valor_aluguel_mercado NUMERIC(12,2) NOT NULL,
+                    indice_correcao NUMERIC(5,2) NOT NULL,
+                    minutos_operacionais INT NOT NULL,
+                    custo_minuto_instalacao NUMERIC(10,4) NOT NULL,
+                    meses_retorno NUMERIC(8,1) NOT NULL
+                );
+            """)
+            conn.commit()
             cursor.close()
             conn.close()
         except Exception as e: print(f"Erro banco: {e}")
 
 inicializar_banco()
 
+# ROTAS DIRETAS DAS PÁGINAS DE TRABALHO
 @app.route('/')
 def index(): return render_template('index.html')
 
@@ -54,239 +66,66 @@ def pagina_retorno(): return render_template('retorno.html')
 
 @app.route('/precificacao')
 def pagina_precificacao(): return render_template('precificacao.html')
-@app.route('/api/imobiliario', methods=['GET', 'POST'])
-def gerenciar_imobiliario():
+# API ISOLADA: GERENCIAMENTO DE INSTALAÇÕES IMOBILIÁRIAS (AULA 1)
+@app.route('/api/imobiliario_isolado', methods=['GET', 'POST', 'PUT'])
+@app.route('/api/imobiliario_isolado/<int:item_id>', methods=['DELETE'])
+def gerenciar_imobiliario_isolado(item_id=None):
     conn = obter_conexao_db()
-    if not conn: return jsonify({'error': 'Sem conexao'}), 500
+    if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'POST':
+    
+    # 1. BOTÃO DELETAR (Remoção física permanente do PostgreSQL)
+    if request.method == 'DELETE' and item_id:
+        try:
+            cursor.execute("DELETE FROM imobiliario_isolado WHERE id = %s;", (item_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e: return jsonify({'error': str(e)}), 500
+            
+    # 2. BOTÕES SALVAR E ALTERAR
+    if request.method in ['POST', 'PUT']:
         data = request.get_json()
-        v_terr = float(data.get('valor_terreno', 0))
-        c_edif = float(data.get('custo_edificacao', 0))
-        imp = float(data.get('impostos_anuais', 0))
-        v_util = int(data.get('vida_util_anos', 20))
-        minutos_ano = int(data.get('minutos_operacionais_ano') or 144000)
+        idx = data.get('id')
+        desc = data.get('descricao', 'Galpão Industrial')
+        capital = float(data.get('valor_capital', 0))
+        aluguel = float(data.get('valor_aluguel_mercado', 0))
+        indice = float(data.get('indice_correcao', 1.0))
+        minutos = int(data.get('minutos_operacionais_ano', 144000))
         
-        amort = (v_terr + c_edif) / v_util if v_util > 0 else 0
-        c_anual = amort + imp
-        c_min = c_anual / minutos_ano if minutos_ano > 0 else 0
-        try:
-            cursor.execute("DELETE FROM investimentos_iniciais;")
-            cursor.execute("INSERT INTO investimentos_iniciais (valor_terreno, custo_edificacao, impostos_transferencia) VALUES (%s, %s, %s);", (v_terr, c_edif, imp))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso', 'custoMinutoInstalacao': round(c_min, 4)})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM investimentos_iniciais ORDER BY id DESC LIMIT 1;")
-    imovel = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return jsonify(imovel or {})
-
-@app.route('/api/maquinas', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/maquinas/<int:maquina_id>', methods=['DELETE'])
-def gerenciar_maquinas(maquina_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and maquina_id:
-        try:
-            cursor.execute("DELETE FROM maquinas WHERE id = %s;", (maquina_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        id_m = data.get('id')
-        nome = data.get('nome')
-        preco = float(data.get('preco', 0))
-        v_ut = int(data.get('vida_util', 1))
-        v_rev = float(data.get('valor_revenda', 0))
-        manut = float(data.get('manutencao', 0))
-        min_ano = int(data.get('minutos_ativos_ano', 144000))
-        pot = float(data.get('potencia_kw', 0))
-        tar = float(data.get('tarifa_kwh', 0))
-        dt_aq = data.get('data_aquisicao') or '2026-01-15'
-        dt_mn = data.get('data_manutencao') or '2026-12-20'
-        diam = float(data.get('diametro_mm', 0))
-        comp = float(data.get('comprimento_mm', 0))
+        # NOVA LÓGICA PEDAGÓGICA FLEXÍVEL: Retorno baseado em 50% do aluguel corrigido
+        retorno_mensal_real = (aluguel * 0.5) * (1 + (indice / 100))
+        meses_retorno = capital / retorno_mensal_real if retorno_mensal_real > 0 else 0
         
-        depr = (preco - v_rev) / v_ut if preco > v_rev else 0
-        c_energ_min = (pot * tar) / 60.0
-        c_min = ((depr + manut) / min_ano) + c_energ_min if min_ano > 0 else c_energ_min
+        # Custo minuto de instalação padrão para tabelas internas
+        custo_minuto = (capital / 240) / minutos if minutos > 0 else 0
+        
         try:
-            if request.method == 'PUT' and id_m:
-                cursor.execute("""UPDATE maquinas SET nome_maquina=%s, preco_compra=%s, tempo_vida_util_anos=%s, valor_revenda_estimado=%s, custo_manutencao_anual=%s, minutos_ativos_ano=%s, potencia_kw=%s, tarifa_kwh=%s, data_aquisicao=%s, data_manutencao_preventiva=%s, diametro_trabalho_mm=%s, comprimento_trabalho_mm=%s, custo_minuto_maquina=%s WHERE id=%s;""", (nome, preco, v_ut, v_rev, manut, min_ano, pot, tar, dt_aq, dt_mn, diam, comp, c_min, id_m))
+            if request.method == 'PUT' and idx:
+                cursor.execute(
+                    """UPDATE imobiliario_isolado SET descricao=%s, valor_capital=%s, valor_aluguel_mercado=%s, 
+                                                     indice_correcao=%s, minutos_operacionais=%s, custo_minuto_instalacao=%s, meses_retorno=%s 
+                       WHERE id=%s;""", (desc, capital, aluguel, indice, minutos, custo_minuto, meses_retorno, idx)
+                )
             else:
-                cursor.execute("""INSERT INTO maquinas (nome_maquina, preco_compra, tempo_vida_util_anos, valor_revenda_estimado, custo_manutencao_anual, minutos_ativos_ano, potencia_kw, tarifa_kwh, data_aquisicao, data_manutencao_preventiva, diametro_trabalho_mm, comprimento_trabalho_mm, custo_minuto_maquina) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);""", (nome, preco, v_ut, v_rev, manut, min_ano, pot, tar, dt_aq, dt_mn, diam, comp, c_min))
+                cursor.execute(
+                    """INSERT INTO imobiliario_isolado (descricao, valor_capital, valor_aluguel_mercado, indice_correcao, minutos_operacionais, custo_minuto_instalacao, meses_retorno) 
+                       VALUES (%s, %s, %s, %s, %s, %s, %s);""", (desc, capital, aluguel, indice, minutos, custo_minuto, meses_retorno)
+                )
             conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'status': 'sucesso'})
         except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM maquinas ORDER BY id DESC;")
-    maquinas = cursor.fetchall()
+
+    # 3. LEITURA PERMANENTE DAS TABELAS ABAIXO DO CADASTRO
+    cursor.execute("SELECT * FROM imobiliario_isolado ORDER BY id DESC;")
+    registros = cursor.fetchall()
     cursor.close()
     conn.close()
-    return jsonify(maquinas)
-
-@app.route('/api/produtos', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/produtos/<int:produto_id>', methods=['DELETE'])
-def gerenciar_produtos(produto_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and produto_id:
-        try:
-            cursor.execute("DELETE FROM produtos WHERE id = %s;", (produto_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        id_p = data.get('id')
-        cod = data.get('codigo_produto')
-        nome = data.get('nome_produto')
-        try:
-            if request.method == 'PUT' and id_p:
-                cursor.execute("UPDATE produtos SET codigo_produto=%s, nome_produto=%s WHERE id=%s;", (cod, nome, id_p))
-            else:
-                cursor.execute("INSERT INTO produtos (codigo_produto, nome_produto) VALUES (%s, %s);", (cod, nome))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM produtos ORDER BY codigo_produto ASC;")
-    p = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(p)
-@app.route('/api/materiais', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/materiais/<int:material_id>', methods=['DELETE'])
-def gerenciar_materiais(material_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and material_id:
-        try:
-            cursor.execute("DELETE FROM materiais WHERE id = %s;", (material_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        id_mat = data.get('id')
-        nome = data.get('nome')
-        tipo = data.get('tipo')
-        custo_un = float(data.get('custo_unitario', 0))
-        unidade = data.get('unidade_medida', 'un')
-        try:
-            if request.method == 'PUT' and id_mat:
-                cursor.execute("UPDATE materiais SET nome_material=%s, tipo_material=%s, custo_unitario=%s, unidade_medida=%s WHERE id=%s;", (nome, tipo, custo_un, unidade, id_mat))
-            else:
-                cursor.execute("INSERT INTO materiais (nome_material, tipo_material, custo_unitario, unidade_medida) VALUES (%s, %s, %s, %s);", (nome, tipo, custo_un, unidade))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM materiais ORDER BY nome_material ASC;")
-    materiais = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(materiais)
-
-@app.route('/api/processos', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/processos/<int:processo_id>', methods=['DELETE'])
-def gerenciar_processos(processo_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and processo_id:
-        try:
-            cursor.execute("DELETE FROM processos WHERE id = %s;", (processo_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        id_proc = data.get('id')
-        prod_id = int(data.get('produto_id'))
-        maq_id = int(data.get('maquina_id'))
-        t_ciclo = float(data.get('tempo_ciclo_min', 0))
-        t_setup = float(data.get('tempo_setup_min', 0))
-        lote = int(data.get('lote_padrao', 100))
-        try:
-            if request.method == 'PUT' and id_proc:
-                cursor.execute("UPDATE processos SET produto_id=%s, maquina_id=%s, tempo_cycle_min=%s, tempo_setup_min=%s, lote_padrao=%s WHERE id=%s;", (prod_id, maq_id, t_ciclo, t_setup, lote, id_proc))
-            else:
-                cursor.execute("INSERT INTO procesos (produto_id, maquina_id, tempo_cycle_min, tempo_setup_min, lote_padrao) VALUES (%s, %s, %s, %s, %s);", (prod_id, maq_id, t_ciclo, t_setup, lote))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT p.*, prod.codigo_produto, prod.nome_produto, m.nome_maquina, m.custo_minuto_maquina FROM processos p LEFT JOIN produtos prod ON p.produto_id = prod.id LEFT JOIN maquinas m ON p.maquina_id = m.id ORDER BY prod.codigo_produto ASC;")
-    processos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(processos)
-
-@app.route('/api/vendas', methods=['GET', 'POST'])
-@app.route('/api/vendas/<int:pedido_id>', methods=['DELETE'])
-def gerenciar_vendas(pedido_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and pedido_id:
-        try:
-            cursor.execute("DELETE FROM pedidos_venda WHERE id = %s;", (pedido_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method == 'POST':
-        data = request.get_json()
-        prod_id = int(data.get('produto_id'))
-        qtd_pedida = int(data.get('quantidade', 0))
-        cliente = data.get('cliente', 'Cliente Geral')
-        cursor.execute("SELECT tempo_cycle_min, tempo_setup_min FROM processos WHERE produto_id = %s LIMIT 1;", (prod_id,))
-        prod = cursor.fetchone()
-        tempo_total_producao_min = 0
-        if prod: tempo_total_producao_min = (qtd_pedida * float(prod['tempo_cycle_min'])) + float(prod['tempo_setup_min'])
-        try:
-            cursor.execute("INSERT INTO pedidos_venda (produto_id, quantidade_pedida, cliente_nome, carga_minutos_pcp) VALUES (%s, %s, %s, %s);", (prod_id, qtd_pedida, cliente, round(tempo_total_producao_min, 2)))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT v.*, p.codigo_produto, p.nome_produto FROM pedidos_venda v LEFT JOIN produtos p ON v.produto_id = p.id ORDER BY v.id DESC;")
-    pedidos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(pedidos)
-
-@app.route('/api/calculo-markup', methods=['POST'])
-def calcular_markup():
-    data = request.get_json()
-    c_tot = float(data.get('custo_total', 0))
-    luc = float(data.get('margem_lucro', 0))
-    imp = float(data.get('impostos', 0))
-    den = 1 - ((luc + imp) / 100)
-    if den <= 0: return jsonify({'error': 'Erro'}), 400
-    return jsonify({'markup': round(1/den, 2), 'preco_venda': round(c_tot * (1/den), 2)})
-
+    return jsonify(registros)
+# FIM DO ARQUIVO COMPILÁVEL DO FLASK NO RENDER
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
