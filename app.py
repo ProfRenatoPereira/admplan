@@ -1,232 +1,84 @@
+import sqlite3
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
+DATABASE = 'database.db'
 
-# CONEXAO PERMANENTE COM O BANCO DE DADOS POSTGRESQL DO RENDER
-def obter_conexao_db():
-    url_banco = os.environ.get('DATABASE_URL')
-    if url_banco:
-        if url_banco.startswith("postgres://"):
-            url_banco = url_banco.replace("postgres://", "postgresql://", 1)
-        return psycopg2.connect(url_banco)
-    return None
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def inicializar_banco():
-    conn = obter_conexao_db()
-    if conn:
+def init_db():
+    if not os.path.exists(DATABASE):
+        with app.app_context():
+            db = get_db()
+            with app.open_resource('schema.sql', mode='r') as f:
+                db.cursor().executescript(f.read())
+            db.commit()
+
+# ROTA: PRODUTOS (PÁGINA INICIAL / CADASTRO MESTRE)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    db = get_db()
+    if request.method == 'POST':
+        part_number = request.form.get('part_number')
+        descricao = request.form.get('descricao')
         try:
-            cursor = conn.cursor()
-            
-            # 1. Tabela Isolada Imobiliária
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS imobiliario_isolado (
-                    id SERIAL PRIMARY KEY,
-                    descricao VARCHAR(150) NOT NULL,
-                    valor_capital NUMERIC(12,2) NOT NULL,
-                    valor_aluguel_mercado NUMERIC(12,2) NOT NULL,
-                    indice_correcao NUMERIC(5,2) NOT NULL,
-                    minutos_operacionais INT NOT NULL,
-                    custo_minuto_instalacao NUMERIC(10,4) NOT NULL,
-                    meses_retorno NUMERIC(8,1) NOT NULL
-                );
-            """)
-            
-            # 2. Tabela Isolada de Ativos e Máquinas Reais
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS maquinas_isoladas (
-                    id SERIAL PRIMARY KEY,
-                    nome_equipamento VARCHAR(150) NOT NULL,
-                    tipo_maquina VARCHAR(100) NOT NULL,
-                    codigo_identificacao VARCHAR(50) NOT NULL,
-                    preco_compra NUMERIC(12,2) NOT NULL,
-                    velocidade_trabalho VARCHAR(50) NOT NULL,
-                    avanco_trabalho VARCHAR(50) NOT NULL,
-                    capacidade_fisica VARCHAR(100) NOT NULL,
-                    link_mercado TEXT,
-                    minutos_ativos_ano INT NOT NULL DEFAULT 144000
-                );
-            """)
-            
-            # 3. Tabela Isolada de Almoxarifado e Materiais
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS materiais_isolados (
-                    id SERIAL PRIMARY KEY,
-                    nome_material VARCHAR(150) NOT NULL,
-                    tipo_material VARCHAR(50) NOT NULL,
-                    custo_unitario NUMERIC(10,2) NOT NULL,
-                    unidade_medida VARCHAR(20) DEFAULT 'un',
-                    peso_especifico_kg NUMERIC(8,3) DEFAULT 0.00,
-                    dimensao_padrao VARCHAR(100) DEFAULT 'N/A',
-                    indice_perda_percentual NUMERIC(5,2) DEFAULT 0.00,
-                    lote_minimo_compra INT DEFAULT 1,
-                    link_fornecedor TEXT
-                );
-            """)
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e: print(f"Erro na sincronizacao: {e}")
+            db.execute("INSERT INTO produtos (part_number, descricao) VALUES (?, ?)", (part_number, descricao))
+            db.commit()
+        except sqlite3.IntegrityError:
+            pass # Ignora duplicados ou trate o erro
+        return redirect(url_for('index'))
+    
+    produtos = db.execute("SELECT * FROM produtos").fetchall()
+    return render_template('index.html', produtos=produtos)
 
-inicializar_banco()
+# ROTA: PROCESSOS (VINCULADO AO PRODUTO)
+@app.route('/processos', methods=['GET', 'POST'])
+def processos():
+    db = get_db()
+    if request.method == 'POST':
+        produto_id = request.form.get('produto_id')
+        nome_operacao = request.form.get('nome_operacao')
+        tempo = request.form.get('tempo')
+        custo_mod = request.form.get('custo_mod')
+        
+        db.execute("INSERT INTO processos (produto_id, nome_operacao, tempo_segundos, custo_mod) VALUES (?, ?, ?, ?)", 
+                   (produto_id, nome_operacao, tempo, custo_mod))
+        db.commit()
+        return redirect(url_for('processos'))
+        
+    produtos = db.execute("SELECT * FROM produtos").fetchall()
+    processos_salvos = db.execute("""
+        SELECT p.*, prod.part_number, prod.descricao FROM processos p 
+        JOIN produtos prod ON p.produto_id = prod.id
+    """).fetchall()
+    return render_template('processos.html', produtos=produtos, processos=processos_salvos)
 
-# ROTAS DIRETAS DE NAVEGAÇÃO MULTIPÁGINAS
-@app.route('/')
-def index(): return render_template('index.html')
-
-@app.route('/terreno')
-def pagina_terreno(): return render_template('terreno.html')
-
-@app.route('/maquinas')
-def pagina_maquinas(): return render_template('maquinas.html')
-
-@app.route('/produtos')
-def pagina_produtos(): return render_template('produtos.html')
-
-@app.route('/materiais')
-def pagina_materiais(): return render_template('materiais.html')
-
-@app.route('/processos')
-def pagina_processos(): return render_template('processos.html')
-
-@app.route('/vendas')
-def pagina_vendas(): return render_template('vendas.html')
-
-@app.route('/retorno')
-def pagina_retorno(): return render_template('retorno.html')
-
-@app.route('/precificacao')
-def pagina_precificacao(): return render_template('precificacao.html')
-# API ISOLADA: GESTÃO DE INSTALAÇÕES IMOBILIÁRIAS (AULA 1)
-@app.route('/api/imobiliario_isolado', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/imobiliario_isolado/<int:item_id>', methods=['DELETE'])
-def gerenciar_imobiliario_isolado(item_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and item_id:
-        try:
-            cursor.execute("DELETE FROM imobiliario_isolado WHERE id = %s;", (item_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        idx = data.get('id')
-        desc = data.get('descricao', 'Galpão Industrial')
-        capital = float(data.get('valor_capital', 0))
-        aluguel = float(data.get('valor_aluguel_mercado', 0))
-        indice = float(data.get('indice_correcao', 1.0))
-        minutos = int(data.get('minutos_operacionais_ano', 144000))
-        retorno_mensal_real = (aluguel * 0.5) * (1 + (indice / 100))
-        meses_retorno = capital / retorno_mensal_real if retorno_mensal_real > 0 else 0
-        custo_minuto = (capital / 240) / minutos if minutos > 0 else 0
-        try:
-            if request.method == 'PUT' and idx:
-                cursor.execute("""UPDATE imobiliario_isolado SET descricao=%s, valor_capital=%s, valor_aluguel_mercado=%s, indice_correcao=%s, minutos_operacionais=%s, custo_minuto_instalacao=%s, meses_retorno=%s WHERE id=%s;""", (desc, capital, aluguel, indice, minutos, custo_minuto, meses_retorno, idx))
-            else:
-                cursor.execute("""INSERT INTO imobiliario_isolado (descricao, valor_capital, valor_aluguel_mercado, indice_correcao, minutos_operacionais, custo_minuto_instalacao, meses_retorno) VALUES (%s, %s, %s, %s, %s, %s, %s);""", (desc, capital, aluguel, indice, minutos, custo_minuto, meses_retorno))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM imobiliario_isolado ORDER BY id DESC;")
-    registros = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(registros)
-
-# API ISOLADA: GESTÃO DE ATIVOS E MÁQUINAS REAIS (AULA 2)
-@app.route('/api/maquinas_isoladas', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/maquinas_isoladas/<int:maquina_id>', methods=['DELETE'])
-def gerenciar_maquinas_isoladas(maquina_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and maquina_id:
-        try:
-            cursor.execute("DELETE FROM maquinas_isoladas WHERE id = %s;", (maquina_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        idx = data.get('id')
-        nome = data.get('nome_equipamento')
-        tipo = data.get('tipo_maquina')
-        codigo = data.get('codigo_identificacao')
-        preco = float(data.get('preco_compra', 0))
-        vel = data.get('velocidade_trabalho', 'N/A')
-        avanco = data.get('avanco_trabalho', 'N/A')
-        cap = data.get('capacidade_fisica', 'N/A')
-        link = data.get('link_mercado', '')
-        minutos = int(data.get('minutos_ativos_ano', 144000))
-        try:
-            if request.method == 'PUT' and idx:
-                cursor.execute("""UPDATE maquinas_isoladas SET nome_equipamento=%s, tipo_maquina=%s, codigo_identificacao=%s, preco_compra=%s, velocidade_trabalho=%s, avanco_trabalho=%s, capacidade_fisica=%s, link_mercado=%s, minutos_ativos_ano=%s WHERE id=%s;""", (nome, tipo, codigo, preco, vel, avanco, cap, link, minutos, idx))
-            else:
-                cursor.execute("""INSERT INTO maquinas_isoladas (nome_equipamento, tipo_maquina, codigo_identificacao, preco_compra, velocidade_trabalho, avanco_trabalho, capacidade_fisica, link_mercado, minutos_ativos_ano) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (nome, tipo, codigo, preco, vel, avanco, cap, link, minutos))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM maquinas_isoladas ORDER BY id DESC;")
-    maquinas = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(maquinas)
-# API ISOLADA: ENGENHARIA DE MATERIAIS E ALMOXARIFADO (AULA 3)
-@app.route('/api/materiais_isoladas', methods=['GET', 'POST', 'PUT'])
-@app.route('/api/materiais_isoladas/<int:material_id>', methods=['DELETE'])
-def gerenciar_materiais_isolados(material_id=None):
-    conn = obter_conexao_db()
-    if not conn: return jsonify([])
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    if request.method == 'DELETE' and material_id:
-        try:
-            cursor.execute("DELETE FROM materiais_isolados WHERE id = %s;", (material_id,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    if request.method in ['POST', 'PUT']:
-        data = request.get_json()
-        idx = data.get('id')
-        nome = data.get('nome_material')
-        tipo = data.get('tipo_material')
-        custo = float(data.get('custo_unitario', 0))
-        unidade = data.get('unidade_medida', 'un')
-        peso = float(data.get('peso_especifico_kg', 0))
-        dim = data.get('dimensao_padrao', 'N/A')
-        perda = float(data.get('indice_perda_percentual', 0))
-        lote = int(data.get('lote_minimo_compra', 1))
-        link = data.get('link_fornecedor', '')
-        try:
-            if request.method == 'PUT' and idx:
-                cursor.execute("""UPDATE materiais_isolados SET nome_material=%s, tipo_material=%s, custo_unitario=%s, unidade_medida=%s, peso_especifico_kg=%s, dimensao_padrao=%s, indice_perda_percentual=%s, lote_minimo_compra=%s, link_fornecedor=%s WHERE id=%s;""", (nome, tipo, custo, unidade, peso, dim, perda, lote, link, idx))
-            else:
-                cursor.execute("""INSERT INTO materiais_isolados (nome_material, tipo_material, custo_unitario, unidade_medida, peso_especifico_kg, dimensao_padrao, indice_perda_percentual, lote_minimo_compra, link_fornecedor) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (nome, tipo, custo, unidade, peso, dim, perda, lote, link))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'sucesso'})
-        except Exception as e: return jsonify({'error': str(e)}), 500
-    cursor.execute("SELECT * FROM materiais_isolados ORDER BY id DESC;")
-    itens = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(itens)
+# ROTA: MATERIAIS (VINCULADO AO PRODUTO + URL DA INTERNET)
+@app.route('/materiais', methods=['GET', 'POST'])
+def materiais():
+    db = get_db()
+    if request.method == 'POST':
+        produto_id = request.form.get('produto_id')
+        nome_material = request.form.get('nome_material')
+        preco = request.form.get('preco_unitario')
+        url = request.form.get('fonte_url')
+        
+        db.execute("INSERT INTO materiais (produto_id, nome_material, preco_unitario, fonte_url) VALUES (?, ?, ?, ?)", 
+                   (produto_id, nome_material, preco, url))
+        db.commit()
+        return redirect(url_for('materiais'))
+        
+    produtos = db.execute("SELECT * FROM produtos").fetchall()
+    materiais_salvos = db.execute("""
+        SELECT m.*, prod.part_number FROM materiais m 
+        JOIN produtos prod ON m.produto_id = prod.id
+    """).fetchall()
+    return render_template('materiais.html', produtos=produtos, materiais=materiais_salvos)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    init_db()
+    app.run(debug=True)
