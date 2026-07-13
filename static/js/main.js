@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('custoTotal')) carregarEMotorCustoGlobal();
 });
 
+
+
 function toggleContraste() { document.body.classList.toggle('alto-contraste'); }
 let tamanhoFonteAtual = 100;
 function alterarFonte(direcao) {
@@ -99,6 +101,8 @@ async function carregarMaquinasDoServidor() {
 }
 
 
+
+
 async function adicionarMaquinaServidor() {
     const elId = document.getElementById('maquinaIdOculto');
     const elNome = document.getElementById('maquinaNome');
@@ -130,7 +134,8 @@ async function adicionarMaquinaServidor() {
     const diametro_mm = elDiam ? parseFloat(elDiam.value) || 0 : 0;
     const comprimento_mm = elComp ? parseFloat(elComp.value) || 0 : 0;
 
-    if (!nome || preco <= 0) { alert("Preencha o nome e preço do ativo."); return; }
+    if (!nome) { alert("Por favor, preencha o Nome do Equipamento."); return; }
+    if (preco <= 0) { alert("Por favor, insira o Valor de Aquisição."); return; }
     
     const url = id_maquina ? `/api/maquinas/${id_maquina}` : '/api/maquinas';
     const metodo = id_maquina ? 'PUT' : 'POST';
@@ -148,20 +153,26 @@ async function adicionarMaquinaServidor() {
             })
         });
 
+        const rData = await response.json();
+
         if (response.ok) {
             if(elId) elId.value = '';
             if(elNome) elNome.value = '';
             const btnSalvar = document.getElementById('btnSalvarAtivo');
             if (btnSalvar) btnSalvar.innerText = "Salvar e Registrar Ativo no PostgreSQL";
             carregarMaquinasDoServidor();
+            alert("Equipamento gravado com sucesso!");
             emitirAudioTexto("Equipamento gravado no banco de dados.");
         } else {
-            alert("Erro ao salvar o equipamento no servidor.");
+            alert("Erro no Servidor: " + (rData.error || "Falha desconhecida no banco de dados."));
         }
     } catch (err) {
-        console.error("Erro na requisição POST/PUT: ", err);
+        console.error("Erro na requisição: ", err);
+        alert("Erro de conexão: Não foi possível alcançar o servidor.");
     }
 }
+
+
 
 function renderizarTabelaMaquinas() {
     const tbody = document.querySelector('#tabelaMaquinas tbody');
@@ -190,11 +201,14 @@ function renderizarTabelaMaquinas() {
         tbody.appendChild(tr);
     });
 }
+
 async function deletarAtivoServidor(id) {
     if (!confirm("Deseja excluir este equipamento?")) return;
     const response = await fetch(`/api/maquinas/${id}`, { method: 'DELETE' });
     if (response.ok) { carregarMaquinasDoServidor(); emitirAudioTexto("Ativo excluído."); }
 }
+
+
 
 function carregarAtivoParaEdicao(id) {
     const m = parqueMaquinas.find(item => item.id === id);
@@ -229,6 +243,9 @@ function carregarAtivoParaEdicao(id) {
     if (btnSalvar) btnSalvar.innerText = "Salvar Alterações no Banco";
 }
 
+// ============================================================================
+// 4. MÓDULO DE PROCESSOS, PCP E ROTEIROS (PÁGINA: processos.html)
+// ============================================================================
 async function carregarProcessosEAtivosFabrica() {
     const select = document.getElementById('procSelecaoMaquina');
     if (!select) return;
@@ -246,6 +263,7 @@ async function carregarProcessosEAtivosFabrica() {
     }
     renderizarTabelaProcessos();
 }
+
 function adicionarEtapaProcesso() {
     const maquinaId = document.getElementById('procSelecaoMaquina').value;
     const tempoOperacao = parseFloat(document.getElementById('procTempoOperacao').value) || 0;
@@ -278,6 +296,9 @@ function adicionarEtapaProcesso() {
     renderizarTabelaProcessos();
 }
 
+
+
+
 function renderizarTabelaProcessos() {
     const tbody = document.querySelector('#tabelaProcessos tbody');
     if (!tbody) return;
@@ -299,6 +320,7 @@ function removerProcesso(id) {
     localStorage.setItem('listaProcessos', JSON.stringify(listaProcessos));
     renderizarTabelaProcessos();
 }
+
 function adicionarInsumo() {
     const nome = document.getElementById('insumoNome').value.trim();
     const qtd = parseFloat(document.getElementById('insumoQtd').value) || 0;
@@ -306,7 +328,7 @@ function adicionarInsumo() {
     if (!nome || qtd <= 0 || custoUn <= 0) return;
 
     listaInsumos = JSON.parse(localStorage.getItem('listaInsumos')) || [];
-    listaInsumos.push({ id: Date.now(), nome, qtd, custoUn, subtotal: qtd * custoUn });
+    listaInsumos.push({ id: Date.now(), nome, qtd, custoUn, subtotal: qtd * cubiculoUn });
     localStorage.setItem('listaInsumos', JSON.stringify(listaInsumos));
     renderizarTabelaInsumos();
 }
