@@ -1,52 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}Instalações Imobiliárias - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
-<section class="card" aria-labelledby="tit-terreno">
-    <h2 id="tit-terreno">Módulo Isolado: Gestão de Instalações Imobiliárias</h2>
-    <p>Cadastre o patrimônio físico e analise o tempo de retorno de capital baseado em 50% do aluguel corrigido por índices.</p>
-    
-    <!-- Input oculto para carregar o ID durante a alteração -->
-    <input type="hidden" id="imoIsoladoId" value="">
-
-    <div class="grid-form">
-        <div class="form-group">
-            <label for="imoDescricao">Descrição do Imóvel / Galpão:</label>
-            <input type="text" id="imoDescricao" placeholder="Ex: Galpão Metalúrgico Unidade 01">
-
-            <label for="imoCapital">Valor Total do Capital Investido (R$):</label>
-            <input type="number" id="imoCapital" value="1250000">
-
-            <label for="imoAluguel">Valor Estimado do Aluguel de Mercado (R$):</label>
-            <input type="number" id="imoAluguel" value="12000">
-        </div>
-        <div class="form-group">
-            <label for="imoIndice">Índice Imobiliário de Correção Anual (%):</label>
-            <input type="number" id="imoIndice" value="4.5" step="0.01">
-
-            <label for="imoMinutos">Minutos Operacionais de Fábrica / Ano:</label>
-            <input type="number" id="imoMinutos" value="144000">
-            
-            <button onclick="salvarImobiliarioIsolado()" class="btn-primary" id="btnSalvarImo" style="margin-top: 25px;">Salvar / Registrar Instalação</button>
-        </div>
+<h2>Instalações Imobiliárias & Investimento em Infraestrutura</h2>
+<form method="POST" action="/terreno">
+    <div class="form-group">
+        <label>Descrição do Imóvel / Terreno:</label>
+        <input type="text" name="descricao_imovel" required placeholder="Ex: Galpão Industrial Distrito Sul">
     </div>
-    <h3 style="margin-top: 35px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Quadro Patrimonial & Retorno de Aluguel Simulado</h3>
-    <div style="overflow-x: auto;">
-        <table class="data-table" id="tabelaImobiliarioIsolado">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Descrição do Ativo</th>
-                    <th>Capital Investido</th>
-                    <th>Aluguel Simulado (50%)</th>
-                    <th>Custo / Minuto</th>
-                    <th>Tempo Retorno (Payback)</th>
-                    <th>Ações de Controle</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Linhas alimentadas de forma estável pelo banco de dados -->
-            </tbody>
-        </table>
+    <div class="form-group">
+        <label>Valor de Aquisição (R$):</label>
+        <input type="number" step="0.01" name="valor_aquisicao" required placeholder="0.00">
     </div>
-</section>
+    <div class="form-group">
+        <label>Impostos Locais Estimados (% ao ano):</label>
+        <input type="number" step="0.1" name="impostos_anuais" required placeholder="Ex: 1.5">
+    </div>
+    <button type="submit" class="btn">Salvar Investimento Imobiliário</button>
+</form>
+
+<h3>Patrimônio Imobiliário Cadastrado</h3>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Descrição da Instalação</th>
+            <th>Custo de Aquisição</th>
+            <th>Carga Tributária Anual</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for terr in terrenos %}
+        <tr>
+            <td>{{ terr.id }}</td>
+            <td>{{ terr.descricao_imovel }}</td>
+            <td>R$ {{ "%.2f"|format(terr.valor_aquisicao) }}</td>
+            <td>{{ terr.impostos_anuais }}% ao ano</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
