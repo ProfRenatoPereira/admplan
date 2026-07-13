@@ -1,23 +1,29 @@
 {% extends 'base.html' %}
-
-{% block title %}Tempo de Retorno - TERCEIRO ADM ASSOCIADOS{% endblock %}
-
 {% block content %}
-<section class="card" aria-labelledby="tit-retorno">
-    <h2 id="tit-retorno">Métricas de Viabilidade Econômica (Payback & ROI)</h2>
-    <p>Consolide as projeções para auditar o tempo exato de retorno de capital exigido pelos acionistas.</p>
-    
-    <div class="grid-form">
-        <div class="form-group">
-            <label for="retVendasMensais">Volume de Peças Vendidas / Mês:</label>
-            <input type="number" id="retVendasMensais" value="500">
-        </div>
-        <div class="form-group">
-            <label for="retDespesasFixas">Despesas Operacionais Fixas / Mês (R$):</label>
-            <input type="number" id="retDespesasFixas" value="8000">
-            <button onclick="calcularTempoRetorno()" class="btn-primary">Calcular Viabilidade do Negócio</button>
-        </div>
-    </div>
-    <div id="resultadoRetorno" class="result-box" style="display:none;" role="region" aria-live="polite"></div>
-</section>
+<h2>Retorno sobre Investimento (ROI) & Resultados Financeiros</h2>
+<p>Visão geral de custos integrados agregando Engenharia de Produtos, Processos e Planejamento de Vendas.</p>
+
+<h3>Análise Consolidada do Portfólio</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Part Number</th>
+            <th>Meta Comercial</th>
+            <th>Custo Mat. Total</th>
+            <th>Custo Operacional (MOD)</th>
+            <th>Custo Industrial Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ind in indicadores %}
+        <tr>
+            <td><strong>{{ ind.part_number }}</strong></td>
+            <td>{{ ind.quantidade_meta }} un.</td>
+            <td>R$ {{ "%.2f"|format(ind.mat_total * ind.quantidade_meta) }}</td>
+            <td>R$ {{ "%.2f"|format(ind.mod_total * ind.quantidade_meta) }}</td>
+            <td style="color: navy; font-weight: bold;">R$ {{ "%.2f"|format((ind.mat_total + ind.mod_total) * ind.quantidade_meta) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
