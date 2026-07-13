@@ -1,33 +1,52 @@
 {% extends 'base.html' %}
-
-{% block title %}Precificação de Instalações - TERCEIRO ADM ASSOCIADOS{% endblock %}
-
+{% block title %}Instalações Imobiliárias - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
 <section class="card" aria-labelledby="tit-terreno">
-    <h2 id="tit-terreno">Precificação de Instalações Imobiliárias</h2>
-    <p>Calcule e monitore o impacto financeiro da infraestrutura física no custo operacional minuto da planta industrial.</p>
+    <h2 id="tit-terreno">Módulo Isolado: Gestão de Instalações Imobiliárias</h2>
+    <p>Cadastre o patrimônio físico e analise o tempo de retorno de capital baseado em 50% do aluguel corrigido por índices.</p>
     
+    <!-- Input oculto para carregar o ID durante a alteração -->
+    <input type="hidden" id="imoIsoladoId" value="">
+
     <div class="grid-form">
         <div class="form-group">
-            <label for="imoTerreno">Valor de Compra do Terreno (R$):</label>
-            <input type="number" id="imoTerreno" value="500000">
-            
-            <label for="imoEdificacao">Custo de Construção do Galpão (R$):</label>
-            <input type="number" id="imoEdificacao" value="750000">
-            
-            <label for="imoVidaUtil">Tempo de Amortização Predial (Anos):</label>
-            <input type="number" id="imoVidaUtil" value="20">
+            <label for="imoDescricao">Descrição do Imóvel / Galpão:</label>
+            <input type="text" id="imoDescricao" placeholder="Ex: Galpão Metalúrgico Unidade 01">
+
+            <label for="imoCapital">Valor Total do Capital Investido (R$):</label>
+            <input type="number" id="imoCapital" value="1250000">
+
+            <label for="imoAluguel">Valor Estimado do Aluguel de Mercado (R$):</label>
+            <input type="number" id="imoAluguel" value="12000">
         </div>
         <div class="form-group">
-            <label for="imoImpostos">Impostos Imobiliários Anuais / IPTU (R$):</label>
-            <input type="number" id="imoImpostos" value="15000">
+            <label for="imoIndice">Índice Imobiliário de Correção Anual (%):</label>
+            <input type="number" id="imoIndice" value="4.5" step="0.01">
+
+            <label for="imoMinutos">Minutos Operacionais de Fábrica / Ano:</label>
+            <input type="number" id="imoMinutos" value="144000">
             
-            <label for="imoHorasAno">Horas Operacionais de Fábrica Aberta / Ano:</label>
-            <input type="number" id="imoHorasAno" value="2400">
-            
-            <button onclick="calcularCustosImobiliarios()" class="btn-primary">Salvar e Registrar Custos no Banco</button>
+            <button onclick="salvarImobiliarioIsolado()" class="btn-primary" id="btnSalvarImo" style="margin-top: 25px;">Salvar / Registrar Instalação</button>
         </div>
     </div>
-    <div id="resultadoImobiliario" class="result-box" style="display:none;" role="region" aria-live="polite"></div>
+    <h3 style="margin-top: 35px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Quadro Patrimonial & Retorno de Aluguel Simulado</h3>
+    <div style="overflow-x: auto;">
+        <table class="data-table" id="tabelaImobiliarioIsolado">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descrição do Ativo</th>
+                    <th>Capital Investido</th>
+                    <th>Aluguel Simulado (50%)</th>
+                    <th>Custo / Minuto</th>
+                    <th>Tempo Retorno (Payback)</th>
+                    <th>Ações de Controle</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Linhas alimentadas de forma estável pelo banco de dados -->
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}
