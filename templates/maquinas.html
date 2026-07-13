@@ -1,41 +1,49 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Ativos Produtivos & Máquinas CNC</h2>
-<form method="POST" action="/maquinas">
-    <div class="form-group">
-        <label>Identificação do Equipamento:</label>
-        <input type="text" name="nome_maquina" required placeholder="Ex: Centro de Usinagem 5 Eixos CNC">
-    </div>
-    <div class="form-group">
-        <label>Valor de Compra de Fábrica (R$):</label>
-        <input type="number" step="0.01" name="valor_compra" required placeholder="0.00">
-    </div>
-    <div class="form-group">
-        <label>Taxa de Depreciação Fixa (% ao ano):</label>
-        <input type="number" step="0.1" name="depreciacao_anual" required placeholder="Ex: 10.0">
-    </div>
-    <button type="submit" class="btn">Salvar Ativo no SQL</button>
-</form>
+<div class="container-gestao">
+    <h2>Ativos Produtivos & Máquinas CNC</h2>
+    
+    <form method="POST" action="/maquinas" class="form-corporativo">
+        <div class="form-group">
+            <label for="nome_maquina">Identificação do Equipamento:</label>
+            <input type="text" id="nome_maquina" name="nome_maquina" required placeholder="Ex: Centro de Usinagem 5 Eixos CNC">
+        </div>
+        
+        <div class="form-group">
+            <label for="valor_compra">Valor de Compra de Fábrica (R$):</label>
+            <input type="number" id="valor_compra" step="0.01" name="valor_compra" required placeholder="0.00">
+        </div>
+        
+        <div class="form-group">
+            <label for="depreciacao_anual">Taxa de Depreciação Fixa (% ao ano):</label>
+            <input type="number" id="depreciacao_anual" step="0.1" name="depreciacao_anual" required placeholder="Ex: 10.0">
+        </div>
+        
+        <button type="submit" class="btn-salvar">Salvar Ativo no SQL</button>
+    </form>
 
-<h3>Inventário de Máquinas e Equipamentos</h3>
-<table>
-    <thead>
-        <tr>
-            <th>Equipamento</th>
-            <th>Valor Histórico</th>
-            <th>Depreciação Anual</th>
-            <th>Perda de Valor Estimada</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for maq in maquinas %}
-        <tr>
-            <td>{{ maq.nome_maquina }}</td>
-            <td>R$ {{ "%.2f"|format(maq.valor_compra) }}</td>
-            <td>{{ maq.depreciacao_anual }}%</td>
-            <td style="color: red;">- R$ {{ "%.2f"|format(maq.valor_compra * (maq.depreciacao_anual / 100)) }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <div class="tabela-container">
+        <h3>Inventário de Máquinas e Equipamentos</h3>
+        <table class="tabela-dados">
+            <thead>
+                <tr>
+                    <th>Equipamento</th>
+                    <th>Valor Histórico</th>
+                    <th>Depreciação Anual</th>
+                    <th>Perda de Valor Estimada</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for maq in maquinas %}
+                <tr>
+                    <td>{{ maq.nome_maquina }}</td>
+                    <td>R$ {{ "%.2f"|format(maq.valor_compra) }}</td>
+                    <td>{{ maq.depreciacao_anual }}%</td>
+                    <td class="texto-perda">- R$ {{ "%.2f"|format(maq.valor_compra * (maq.depreciacao_anual / 100)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
