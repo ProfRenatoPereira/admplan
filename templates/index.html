@@ -1,68 +1,40 @@
 {% extends 'base.html' %}
-
-{% block title %}Portal de Acesso - TERCEIRO ADM ASSOCIADOS{% endblock %}
-
 {% block content %}
-<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; padding: 20px;">
+<div class="container-gestao">
+    <h2>Nascimento do Produto (Cadastro Mestre SQL)</h2>
     
-    <!-- Logo Institucional com Estilização Dinâmica (Gira suavemente no hover) -->
-    <div class="animated-logo-container" style="margin-bottom: 30px; text-align: center;">
-        <img src="../static/images/logo.png" alt="Logo Teradmas" class="brand-logo" style="max-height: 120px; width: auto; background: #fff; padding: 10px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.8s ease-in-out; cursor: pointer;" onmouseover="this.style.transform='rotate(360s) scale(1.1)'" onmouseout="this.style.transform='rotate(0deg) scale(1)'">
-        <h2 style="margin-top: 15px; color: var(--primary); letter-spacing: 1px; font-size: 1.6rem;">Sistema de Gestão Integrada</h2>
-    </div>
-
-    <!-- Tela de Autenticação Segura de Usuário -->
-    <div class="card" style="width: 100%; max-width: 400px; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background-color: var(--surface);">
-        <h3 style="text-align: center; margin-bottom: 20px; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 8px;">Área do Aluno / Auditor</h3>
-        
-        <form onsubmit="event.preventDefault(); alert('Autenticação pedagógica realizada com sucesso!'); document.getElementById('bloco-cadastro-mestre').style.display='block';">
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label for="loginUsuario">Usuário / Matrícula:</label>
-                <input type="text" id="loginUsuario" required placeholder="Ex: admin" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px;">
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="loginSenha">Senha de Acesso:</label>
-                <input type="password" id="loginSenha" required placeholder="••••••••" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px;">
-            </div>
-            
-            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;">Entrar no Sistema</button>
-        </form>
-    </div>
-</div>
-<!-- Bloco Dinâmico Oculto (Só é liberado para o aluno após a validação do login acima) -->
-<div id="bloco-cadastro-mestre" style="display: none; margin-top: 40px; width: 100%;">
-    <section class="card" aria-labelledby="tit-mestre-prod">
-        <h2 id="tit-mestre-prod">Nascimento do Produto (Cadastro Mestre SQL)</h2>
-        <p>Cadastre o código único e a descrição do produto final na base mestre antes de liberar o roteamento para o PCP.</p>
-        
-        <input type="hidden" id="prodMestreIdOculto" value="">
-
-        <div class="grid-form">
-            <div class="form-group">
-                <label for="prodMestreCodigo">Código Único do Produto (Part Number):</label>
-                <input type="text" id="prodMestreCodigo" placeholder="Ex: PRD-CNC-001">
-            </div>
-            <div class="form-group">
-                <label for="prodMestreNome">Descrição Comercial do Item:</label>
-                <input type="text" id="prodMestreNome" placeholder="Ex: Eixo de Transmissão Usinado">
-                
-                <button onclick="salvarProdutoMestre()" class="btn-primary" id="btnSalvarProdMestre" style="margin-top: 15px;">Salvar Produto no SQL</button>
-            </div>
+    <form method="POST" action="/" class="form-corporativo">
+        <div class="form-group">
+            <label>Código Único do Produto (Part Number):</label>
+            <input type="text" name="part_number" required placeholder="Ex: PN-1002">
         </div>
-        <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Catálogo de Engenharia Cadastrado</h3>
-        <table class="data-table" id="tabelaProdutosMestre">
+        <div class="form-group">
+            <label>Descrição Comercial do Item:</label>
+            <input type="text" name="descricao" required placeholder="Ex: Cadeira Ergonômica Industrial">
+        </div>
+        <button type="submit" class="btn-salvar">Salvar Produto no SQL</button>
+    </form>
+
+    <div class="tabela-container">
+        <h3>Catálogo de Engenharia Cadastrado</h3>
+        <table class="tabela-dados">
             <thead>
                 <tr>
-                    <th>Código Mestre</th>
+                    <th>ID Interno</th>
+                    <th>Código Mestre (Part Number)</th>
                     <th>Descrição do Produto Industrial</th>
-                    <th>Ações de Controle</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Alimentado via carregarProdutosMestreDoServidor() -->
+                {% for produto in produtos %}
+                <tr>
+                    <td>{{ produto.id }}</td>
+                    <td><strong>{{ produto.part_number }}</strong></td>
+                    <td>{{ produto.descricao }}</td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
-    </section>
+    </div>
 </div>
 {% endblock %}
