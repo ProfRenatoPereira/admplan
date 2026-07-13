@@ -1,28 +1,47 @@
 {% extends 'base.html' %}
-{% block title %}Planejamento de Vendas e PCP - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>Carteira de Pedidos Comerciais & Carga do PCP</h2>
-    <p>Insira os pedidos. O sistema calculará de forma automática a carga horária necessária no PCP em <strong>Minutos Totais</strong>.</p>
-    <div class="grid-form">
+<div class="container-gestao">
+    <h2>Previsão e Metas de Vendas Comerciais</h2>
+    
+    <form method="POST" action="/vendas" class="form-corporativo">
         <div class="form-group">
-            <label for="vendaCliente">Nome do Cliente:</label>
-            <input type="text" id="vendaCliente" placeholder="Ex: Metalúrgica Paraná S/A">
-            <label for="vendaSelecaoProduto">Selecione o Produto Solicitado:</label>
-            <select id="vendaSelecaoProduto"></select>
+            <label>Produto Alvo:</label>
+            <select name="produto_id" required>
+                <option value="">-- Selecione o Produto --</option>
+                {% for produto in produtos %}
+                <option value="{{ produto.id }}">{{ produto.part_number }} - {{ produto.descricao }}</option>
+                {% endfor %}
+            </select>
         </div>
+        
         <div class="form-group">
-            <label for="vendaQuantidade">Quantidade de Peças (Volume):</label>
-            <input type="number" id="vendaQuantidade" value="500">
-            <button onclick="emitirPedidoComercialVenda()" class="btn-primary" style="margin-top: 25px;">Emitir e Integrar Pedido ao PCP</button>
+            <label>Quantidade de Meta para o Período (Unidades):</label>
+            <input type="number" name="quantidade_meta" required placeholder="Ex: 1500">
         </div>
+        
+        <button type="submit" class="btn-salvar">Salvar Planejamento Comercial</button>
+    </form>
+
+    <div class="tabela-container">
+        <h3>Painel de Metas Cadastradas</h3>
+        <table class="tabela-dados">
+            <thead>
+                <tr>
+                    <th>Código Mestre</th>
+                    <th>Descrição Comercial</th>
+                    <th>Meta Projetada</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vendas %}
+                <tr>
+                    <td>{{ v.part_number }}</td>
+                    <td>{{ v.descricao }}</td>
+                    <td>{{ v.quantidade_meta }} un.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Ordem e Carteira de Produção Industrial Ativa</h3>
-    <table class="data-table" id="tabelaVendas">
-        <thead>
-            <tr><th>Cód. Pedido</th><th>Cliente</th><th>Especificação do Item</th><th>Volume</th><th>Carga de Produção</th><th>Ações</th></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</section>
+</div>
 {% endblock %}
