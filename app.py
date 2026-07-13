@@ -10,13 +10,14 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
+# RESOLUÇÃO DO ERRO 500: Cria o banco de dados dinamicamente no Render
+@app.before_request
+def init_db_on_start():
     if not os.path.exists(DATABASE):
-        with app.app_context():
-            db = get_db()
-            with app.open_resource('schema.sql', mode='r') as f:
-                db.cursor().executescript(f.read())
-            db.commit()
+        db = get_db()
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
 
 # ROTA: PRODUTOS (PÁGINA INICIAL / CADASTRO MESTRE)
 @app.route('/', methods=['GET', 'POST'])
@@ -29,15 +30,15 @@ def index():
             db.execute("INSERT INTO produtos (part_number, descricao) VALUES (?, ?)", (part_number, descricao))
             db.commit()
         except sqlite3.IntegrityError:
-            pass # Ignora duplicados ou trate o erro
+            pass
         return redirect(url_for('index'))
     
     produtos = db.execute("SELECT * FROM produtos").fetchall()
     return render_template('index.html', produtos=produtos)
 
-# ROTA: PROCESSOS (VINCULADO AO PRODUTO)
+# ROTA: ENGENHARIA DE PROCESSOS (VINCULADO AO PRODUTO)
 @app.route('/processos', methods=['GET', 'POST'])
-def processos():
+def procesos():
     db = get_db()
     if request.method == 'POST':
         produto_id = request.form.get('produto_id')
@@ -48,7 +49,7 @@ def processos():
         db.execute("INSERT INTO processos (produto_id, nome_operacao, tempo_segundos, custo_mod) VALUES (?, ?, ?, ?)", 
                    (produto_id, nome_operacao, tempo, custo_mod))
         db.commit()
-        return redirect(url_for('processos'))
+        return redirect(url_for('procesos'))
         
     produtos = db.execute("SELECT * FROM produtos").fetchall()
     processos_salvos = db.execute("""
@@ -57,7 +58,7 @@ def processos():
     """).fetchall()
     return render_template('processos.html', produtos=produtos, processos=processos_salvos)
 
-# ROTA: MATERIAIS (VINCULADO AO PRODUTO + URL DA INTERNET)
+# ROTA: MATERIAIS & INSUMOS (VINCULADO AO PRODUTO)
 @app.route('/materiais', methods=['GET', 'POST'])
 def materiais():
     db = get_db()
@@ -78,21 +79,14 @@ def materiais():
         JOIN produtos prod ON m.produto_id = prod.id
     """).fetchall()
     return render_template('materiais.html', produtos=produtos, materiais=materiais_salvos)
-
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
-
-
-
-# ROTA: PRECIFICAÇÃO E MARK-UP INDIVIDUAL
+# ROTA: PRECIFICACAO E MARK-UP INDIVIDUAL
 @app.route('/precificacao', methods=['GET', 'POST'])
 def precificacao():
     db = get_db()
     if request.method == 'POST':
         produto_id = request.form.get('produto_id')
-        margem_lucro = request.form.get('margem_lucro') # em %
-        impostos = request.form.get('impostos') # em %
+        margem_lucro = request.form.get('margem_lucro')
+        impostos = request.form.get('impostos')
         
         db.execute("INSERT INTO precificacao (produto_id, margem_lucro, impostos) VALUES (?, ?, ?)", 
                    (produto_id, margem_lucro, impostos))
@@ -100,8 +94,6 @@ def precificacao():
         return redirect(url_for('precificacao'))
         
     produtos = db.execute("SELECT * FROM produtos").fetchall()
-    
-    # Lógica Avançada: Puxa custos de processos e materiais para calcular o preço sugerido automaticamente
     dados_precificacao = db.execute("""
         SELECT pr.id, prod.part_number, prod.descricao,
                COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as custo_mat,
@@ -110,7 +102,6 @@ def precificacao():
         FROM precificacao pr
         JOIN produtos prod ON pr.produto_id = prod.id
     """).fetchall()
-    
     return render_template('precificacao.html', produtos=produtos, precificacoes=dados_precificacao)
 
 # ROTA: ENGENHARIA DE VENDAS
@@ -134,21 +125,6 @@ def vendas():
     """).fetchall()
     return render_template('vendas.html', produtos=produtos, vendas=vendas_salvas)
 
-# ROTA: FINANÇAS & RETORNO ACIONISTAS (ROI)
-@app.route('/retorno')
-def retorno():
-    db = get_db()
-    # Consolida os dados corporativos para a prestação de contas pedagógica
-    indicadores = db.execute("""
-        SELECT prod.part_number, prod.descricao, v.quantidade_meta,
-               COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as mat_total,
-               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processos p WHERE p.produto_id = prod.id), 0) as mod_total
-        FROM produtos prod
-        JOIN vendas v ON v.produto_id = prod.id
-    """).fetchall()
-    return render_template('retorno.html', indicadores=indicadores)
-
-
 # ROTA: INVESTIMENTO IMOBILIÁRIO (terreno.html)
 @app.route('/terreno', methods=['GET', 'POST'])
 def terreno():
@@ -158,7 +134,7 @@ def terreno():
         valor = request.form.get('valor_aquisicao')
         impostos = request.form.get('impostos_anuais')
         
-        db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impuestos_anuais) VALUES (?, ?, ?)", 
+        db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impostos_anuais) VALUES (?, ?, ?)", 
                    (descricao, valor, impostos))
         db.commit()
         return redirect(url_for('terreno'))
@@ -182,3 +158,19 @@ def maquinas():
         
     maquinas_salvas = db.execute("SELECT * FROM maquinas").fetchall()
     return render_template('maquinas.html', maquinas=maquinas_salvas)
+
+# ROTA: FINANÇAS & RETORNO ACIONISTAS (ROI)
+@app.route('/retorno')
+def retorno():
+    db = get_db()
+    indicadores = db.execute("""
+        SELECT prod.part_number, prod.descricao, v.quantidade_meta,
+               COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as mat_total,
+               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processos p WHERE p.produto_id = prod.id), 0) as mod_total
+        FROM produtos prod
+        JOIN vendas v ON v.produto_id = prod.id
+    """).fetchall()
+    return render_template('retorno.html', indicadores=indicadores)
+
+if __name__ == '__main__':
+    app.run(debug=True)
