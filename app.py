@@ -147,3 +147,38 @@ def retorno():
         JOIN vendas v ON v.produto_id = prod.id
     """).fetchall()
     return render_template('retorno.html', indicadores=indicadores)
+
+
+# ROTA: INVESTIMENTO IMOBILIÁRIO (terreno.html)
+@app.route('/terreno', methods=['GET', 'POST'])
+def terreno():
+    db = get_db()
+    if request.method == 'POST':
+        descricao = request.form.get('descricao_imovel')
+        valor = request.form.get('valor_aquisicao')
+        impostos = request.form.get('impostos_anuais')
+        
+        db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impuestos_anuais) VALUES (?, ?, ?)", 
+                   (descricao, valor, impostos))
+        db.commit()
+        return redirect(url_for('terreno'))
+        
+    terrenos_salvos = db.execute("SELECT * FROM terrenos").fetchall()
+    return render_template('terreno.html', terrenos=terrenos_salvos)
+
+# ROTA: ATIVOS & MÁQUINAS CNC (maquinas.html)
+@app.route('/maquinas', methods=['GET', 'POST'])
+def maquinas():
+    db = get_db()
+    if request.method == 'POST':
+        nome = request.form.get('nome_maquina')
+        valor = request.form.get('valor_compra')
+        depreciacao = request.form.get('depreciacao_anual')
+        
+        db.execute("INSERT INTO maquinas (nome_maquina, valor_compra, depreciacao_anual) VALUES (?, ?, ?)", 
+                   (nome, valor, depreciacao))
+        db.commit()
+        return redirect(url_for('maquinas'))
+        
+    maquinas_salvas = db.execute("SELECT * FROM maquinas").fetchall()
+    return render_template('maquinas.html', maquinas=maquinas_salvas)
