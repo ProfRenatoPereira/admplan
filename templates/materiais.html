@@ -1,56 +1,75 @@
 {% extends 'base.html' %}
-{% block title %}Engenharia de Materiais - TERCEIRO ADM ASSOCIADOS{% endblock %}
+{% block title %}Almoxarifado & Materiais - TERCEIRO ADM ASSOCIADOS{% endblock %}
 {% block content %}
-<section class="card" aria-labelledby="tit-materiais">
-    <h2 id="tit-materiais">Engenharia de Produto, Insumos & Matéria-Prima</h2>
-    <p>Mapeie os materiais e insumos da planta industrial configurando a categoria e a unidade de medida padrão para auditoria contábil.</p>
+<section class="card" aria-labelledby="tit-mat">
+    <h2 id="tit-mat">Módulo Isolado: Engenharia de Materiais & Almoxarifado</h2>
+    <p>Cadastre matérias-primas, insumos e ferramentais mapeando pesos, perdas e cotações reais de mercado (B2B).</p>
     
-    <!-- Input oculto para persistência de alterações -->
-    <input type="hidden" id="materialIdOculto" value="">
+    <input type="hidden" id="matIsoladoId" value="">
 
     <div class="grid-form">
         <div class="form-group">
-            <label for="materialNome">Descrição do Material / Insumo:</label>
-            <input type="text" id="materialNome" placeholder="Ex: Chapa de Aço SAE 1020">
+            <label for="matNome">Descrição Técnica do Material / Item:</label>
+            <input type="text" id="matNome" placeholder="Ex: Barra Redonda Aço SAE 1045 Trefilado">
 
-            <label for="materialTipo">Categoria Estrutural (Tipo):</label>
-            <select id="materialTipo">
-                <option value="Matéria-Prima">Matéria-Prima Industrial</option>
-                <option value="Insumo">Insumo Operacional</option>
-                <option value="Ferramental">Componente / Ferramental</option>
-                <option value="Consumível">Gases / Consumível de Solda</option>
+            <label for="matTipo">Classificação Contábil / Estoque:</label>
+            <select id="matTipo">
+                <option value="Matéria-Prima">Matéria-Prima Direta</option>
+                <option value="Insumo">Insumo Indireto / Operacional</option>
+                <option value="Ferramental">Componente / Ferramental de Corte</option>
+                <option value="Consumível">Gases / Consumíveis de Solda e Pintura</option>
             </select>
-        </div>
-        <div class="form-group">
-            <label for="materialCustoUn">Custo Unitário de Aquisição (R$):</label>
-            <input type="number" id="materialCustoUn" value="150.00" step="0.01">
 
-            <label for="materialUnidade">Unidade de Medida Comercial:</label>
-            <select id="materialUnidade">
+            <label for="matCustoUn">Custo de Aquisição Unitário (R$):</label>
+            <input type="number" id="matCustoUn" value="85.50" step="0.01">
+
+            <label for="matUnidade">Unidade de Medida Comercial:</label>
+            <select id="matUnidade">
                 <option value="un">Unidade (un)</option>
                 <option value="kg">Quilograma (kg)</option>
                 <option value="m">Metro Linear (m)</option>
                 <option value="l">Litro (l)</option>
+                <option value="barra">Barra (6 metros)</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label for="matPeso">Peso Unitário / Líquido Específico (kg):</label>
+            <input type="number" id="matPeso" value="4.250" step="0.001">
+
+            <label for="matDimensao">Dimensões / Bitola Nominal:</label>
+            <input type="text" id="matDimensao" placeholder="Ex: Ø 2'' x 1000mm ou Chapa 1/8''">
+
+            <label for="matPerda">Índice Estimado de Refugo / Perda (%):</label>
+            <input type="number" id="matPerda" value="5.0" step="0.1">
+
+            <label for="matLote">Lote Mínimo de Compra do Fornecedor (MOQ):</label>
+            <input type="number" id="matLote" value="10">
+
+            <label for="matLink">Link da Cotação / Web do Fornecedor:</label>
+            <input type="url" id="matLink" placeholder="Ex: https://gerdau.com.br... ou distribuidor">
             
-            <button onclick="adicionarMaterialServidor()" class="btn-primary" id="btnSalvarMaterial" style="margin-top:15px;">Salvar / Adicionar Item</button>
+            <button onclick="salvarMaterialIsolado()" class="btn-primary" id="btnSalvarMat" style="margin-top: 15px;">Salvar / Registrar Material</button>
         </div>
     </div>
 
-        <h3 style="margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Almoxarifado & Especificações Técnicas</h3>
-    <table class="data-table" id="tabelaMateriais">
-        <thead>
-            <tr>
-                <th>Descrição do Insumo</th>
-                <th>Classificação</th>
-                <th>Custo de Entrada</th>
-                <th>Unidade</th>
-                <th>Ações de Controle</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Alimentado ao vivo via carregarMateriaisDoServidor() -->
-        </tbody>
-    </table>
+    <h3 style="margin-top: 35px; border-bottom: 2px solid var(--accent); padding-bottom: 5px;">Almoxarifado Geral & Fichas Técnicas Ativas</h3>
+    <div style="overflow-x: auto;">
+        <table class="data-table" id="tabelaMateriaisIsolados">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Classificação</th>
+                    <th>Descrição Técnica</th>
+                    <th>Custo Unitário</th>
+                    <th>Peso / Dimensão</th>
+                    <th>Perda Operacional</th>
+                    <th>Lote Min (MOQ)</th>
+                    <th>Cotação Web</th>
+                    <th>Ações de Controle</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}
