@@ -1,41 +1,33 @@
 {% extends 'base.html' %}
-{% block content %}
-<h2>Instalações Imobiliárias & Investimento em Infraestrutura</h2>
-<form method="POST" action="/terreno">
-    <div class="form-group">
-        <label>Descrição do Imóvel / Terreno:</label>
-        <input type="text" name="descricao_imovel" required placeholder="Ex: Galpão Industrial Distrito Sul">
-    </div>
-    <div class="form-group">
-        <label>Valor de Aquisição (R$):</label>
-        <input type="number" step="0.01" name="valor_aquisicao" required placeholder="0.00">
-    </div>
-    <div class="form-group">
-        <label>Impostos Locais Estimados (% ao ano):</label>
-        <input type="number" step="0.1" name="impostos_anuais" required placeholder="Ex: 1.5">
-    </div>
-    <button type="submit" class="btn">Salvar Investimento Imobiliário</button>
-</form>
 
-<h3>Patrimônio Imobiliário Cadastrado</h3>
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Descrição da Instalação</th>
-            <th>Custo de Aquisição</th>
-            <th>Carga Tributária Anual</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for terr in terrenos %}
-        <tr>
-            <td>{{ terr.id }}</td>
-            <td>{{ terr.descricao_imovel }}</td>
-            <td>R$ {{ "%.2f"|format(terr.valor_aquisicao) }}</td>
-            <td>{{ terr.impostos_anuais }}% ao ano</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% block title %}Precificação de Instalações - TERCEIRO ADM ASSOCIADOS{% endblock %}
+
+{% block content %}
+<section class="card" aria-labelledby="tit-terreno">
+    <h2 id="tit-terreno">Precificação de Instalações Imobiliárias</h2>
+    <p>Calcule e monitore o impacto financeiro da infraestrutura física no custo operacional minuto da planta industrial.</p>
+    
+    <div class="grid-form">
+        <div class="form-group">
+            <label for="imoTerreno">Valor de Compra do Terreno (R$):</label>
+            <input type="number" id="imoTerreno" value="500000">
+            
+            <label for="imoEdificacao">Custo de Construção do Galpão (R$):</label>
+            <input type="number" id="imoEdificacao" value="750000">
+            
+            <label for="imoVidaUtil">Tempo de Amortização Predial (Anos):</label>
+            <input type="number" id="imoVidaUtil" value="20">
+        </div>
+        <div class="form-group">
+            <label for="imoImpostos">Impostos Imobiliários Anuais / IPTU (R$):</label>
+            <input type="number" id="imoImpostos" value="15000">
+            
+            <label for="imoHorasAno">Horas Operacionais de Fábrica Aberta / Ano:</label>
+            <input type="number" id="imoHorasAno" value="2400">
+            
+            <button onclick="calcularCustosImobiliarios()" class="btn-primary">Salvar e Registrar Custos no Banco</button>
+        </div>
+    </div>
+    <div id="resultadoImobiliario" class="result-box" style="display:none;" role="region" aria-live="polite"></div>
+</section>
 {% endblock %}
