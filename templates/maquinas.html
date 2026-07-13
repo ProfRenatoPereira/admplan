@@ -1,70 +1,51 @@
-{% extends 'base.html' %}
-{% block title %}Ativos Metalúrgicos - Teradmas{% endblock %}
-{% block content %}
-<section class="card" aria-labelledby="tit-maquinas">
-    <h2 id="tit-maquinas">Gestão de Ativos & Eficiência Energética Metalúrgica</h2>
-    <p>Cadastre e altere os parâmetros operacionais, ciclo de manutenção preventiva e consumo elétrico em kW para cálculo do custo-minuto.</p>
+<!-- Certifique-se de que a tag form possui o action e o method -->
+<form action="/maquinas" method="POST">
     
-    <input type="hidden" id="maquinaIdOculto" value="">
+    <!-- Exemplo de inputs com a tag 'name' configurada -->
+    <input type="text" name="nome_equipamento" placeholder="Ex: Torno CNC" required>
+    <input type="number" name="custo_manutencao" step="0.01" required>
+    <input type="number" name="valor_aquisicao" step="0.01" required>
+    <input type="number" name="horas_operacionais" required>
+    <input type="number" name="vida_util" required>
+    <input type="number" name="potencia_eletrica" step="0.1" required>
+    <input type="number" name="valor_residual" step="0.01" required>
+    <input type="number" name="tarifa_energia" step="0.01" required>
+    <input type="date" name="data_aquisicao" required>
+    <input type="number" name="diametro_maximo" step="0.1">
+    <input type="number" name="comprimento_maximo" step="0.1">
+    <input type="date" name="proxima_manutencao">
 
-    <div class="grid-form">
-        <div class="form-group">
-            <label for="maquinaNome">Nome / Identificação do Equipamento:</label>
-            <input type="text" id="maquinaNome" placeholder="Ex: Torno CNC Mazak">
+    <!-- O botão precisa ser do tipo submit -->
+    <button type="submit" class="btn-salvar">Salvar e Registrar Ativo</button>
+</form>
 
-            <label for="maquinaPreco">Valor de Aquisição (R$):</label>
-            <input type="number" id="maquinaPreco" value="250000">
-            
-            <label for="maquinaVidaUtil">Vida Útil Estimada (Anos):</label>
-            <input type="number" id="maquinaVidaUtil" value="12">
-
-            <label for="maquinaValorRevenda">Valor Residual de Revenda (R$):</label>
-            <input type="number" id="maquinaValorRevenda" value="50000">
-
-            <label for="maquinaAquisicao">Data de Aquisição do Ativo:</label>
-            <input type="date" id="maquinaAquisicao" value="2026-01-15">
-        </div>
-        <div class="form-group">
-            <label for="maquinaManutencao">Custo de Manutenção Anual (R$):</label>
-            <input type="number" id="maquinaManutencao" value="18000">
-            
-            <label for="maquinaHorasAno">Horas Operacionais por Ano:</label>
-            <input type="number" id="maquinaHorasAno" value="2400">
-
-            <label for="maquinaPotencia">Potência Elétrica do Motor (kW):</label>
-            <input type="number" id="maquinaPotencia" value="15.5" step="0.1">
-
-            <label for="maquinaTarifa">Tarifa de Energia Industrial (R$ / kWh):</label>
-            <input type="number" id="maquinaTarifa" value="0.75" step="0.0001">
-
-            <label for="maquinaDiametro">Diâmetro Máximo de Trabalho (mm):</label>
-            <input type="number" id="maquinaDiametro" value="350">
-        </div>
-    </div>
-    
-    <div class="form-group" style="margin-top: 15px;">
-        <label for="maquinaComprimento">Comprimento Máximo de Trabalho (mm):</label>
-        <input type="number" id="maquinaComprimento" value="1000">
-
-        <label for="maquinaPrev">Data para Próxima Manutenção Preventiva:</label>
-        <input type="date" id="maquinaPrev" value="2026-12-20">
-        
-        <button onclick="adicionarMaquinaServidor()" class="btn-primary" id="btnSalvarAtivo" style="margin-top: 15px;">Salvar e Registrar Ativo no PostgreSQL</button>
-    </div>
-
-    <table class="data-table" id="tabelaMaquinas">
-        <thead>
-            <tr>
-                <th>Equipamento</th>
-                <th>Capacidade Física</th>
-                <th>Potência</th>
-                <th>Próxima Preventiva</th>
-                <th>Custo / Minuto</th>
-                <th>Ações de Controle</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <div id="resultadoAtivo" class="result-box" style="display:none;" role="region" aria-live="polite"></div>
-</section>
-{% endblock %}
+<!-- Estrutura da Tabela para listar os equipamentos cadastrados -->
+<table>
+    <thead>
+        <tr>
+            <th>Equipamento</th>
+            <th>Capacidade Física</th>
+            <th>Potência</th>
+            <th>Próxima Preventiva</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Loop do Flask (Jinja2) para renderizar os dados vindos do banco -->
+        {% for maquina in maquinas %}
+        <tr>
+            <td>{{ maquina['nome_equipamento'] }}</td>
+            <td>{{ maquina['diametro_maximo'] }}x{{ maquina['comprimento_maximo'] }} mm</td>
+            <td>{{ maquina['potencia_eletrica'] }} kW</td>
+            <td>{{ maquina['proxima_manutencao'] }}</td>
+            <td>
+                <a href="/maquinas/excluir/{{ maquina['id'] }}">Excluir</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" style="text-align: center;">Nenhuma máquina cadastrada no momento.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
