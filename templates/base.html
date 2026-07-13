@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERCEIRO ADM ASSOCIADOS - Sistema de Gestão Integrada</title>
-    <!-- Vinculação com o arquivo de estilos padrão -->
+    <title>TERCEIRO ADM ASSOCIADOS - Simulador Corporativo</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
@@ -12,14 +11,11 @@
 </head>
 <body>
 
-    <!-- Barra de Navegação Superior Global -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-logo">TERADMAS</a>
             <ul class="nav-menu">
                 <li><a href="/">Início</a></li>
-                
-                <!-- Menu Dropdown 1: Infraestrutura -->
                 <li class="dropdown">
                     <a href="#" class="dropbtn">1. Estrutura ▾</a>
                     <div class="dropdown-content">
@@ -27,8 +23,6 @@
                         <a href="/maquinas">Ativos & Máquinas CNC</a>
                     </div>
                 </li>
-
-                <!-- Menu Dropdown 2: Engenharia -->
                 <li class="dropdown">
                     <a href="#" class="dropbtn">2. Processos & MOD ▾</a>
                     <div class="dropdown-content">
@@ -36,8 +30,6 @@
                         <a href="/materiais">Matéria-Prima & Insumos</a>
                     </div>
                 </li>
-
-                <!-- Menu Dropdown 3: Finanças -->
                 <li class="dropdown">
                     <a href="#" class="dropbtn">3. Finanças & ROI ▾</a>
                     <div class="dropdown-content">
@@ -49,21 +41,66 @@
             </ul>
         </div>
     </nav>
-    <!-- Container Principal onde as páginas filhas serão renderizadas -->
+
     <main class="main-container">
         <div class="content-card">
-            {% block content %}
-            <!-- O conteúdo de cada página (index, processos, etc.) entra aqui automaticamente -->
-            {% endblock %}
+            {% block content %}{% endblock %}
         </div>
     </main>
 
-    <!-- Rodapé Corporativo e Pedagógico -->
     <footer class="footer-global">
         <p>&copy; 2026 TERCEIRO ADM ASSOCIADOS - Programa de Gestão Empresarial Avançada.</p>
     </footer>
 
-    <!-- Vinculação com as automações em JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-gestao">
+    <h2>Ativos Produtivos & Máquinas CNC</h2>
+    
+    <form method="POST" action="/maquinas" class="form-corporativo">
+        <div class="form-group">
+            <label>Identificação do Equipamento:</label>
+            <input type="text" name="nome_maquina" required placeholder="Ex: Centro de Usinagem CNC">
+        </div>
+        
+        <div class="form-group">
+            <label>Valor de Compra de Fábrica (R$):</label>
+            <input type="number" step="0.01" name="valor_compra" required placeholder="0.00">
+        </div>
+        
+        <div class="form-group">
+            <label>Taxa de Depreciação Fixa (% ao ano):</label>
+            <input type="number" step="0.1" name="depreciacao_anual" required placeholder="Ex: 10.0">
+        </div>
+        
+        <button type="submit" class="btn-salvar">Salvar Ativo no SQL</button>
+    </form>
+
+    <div class="tabela-container">
+        <h3>Inventário de Máquinas e Equipamentos</h3>
+        <table class="tabela-dados">
+            <thead>
+                <tr>
+                    <th>Equipamento</th>
+                    <th>Valor Histórico</th>
+                    <th>Depreciação Anual</th>
+                    <th>Perda de Valor Estimada</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for maq in maquinas %}
+                <tr>
+                    <td>{{ maq.nome_maquina }}</td>
+                    <td>R$ {{ "%.2f"|format(maq.valor_compra) }}</td>
+                    <td>{{ maq.depreciacao_anual }}%</td>
+                    <td style="color: #d9534f; font-weight: bold;">- R$ {{ "%.2f"|format(maq.valor_compra * (maq.depreciacao_anual / 100)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
