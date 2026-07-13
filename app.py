@@ -5,7 +5,7 @@ from whitenoise import WhiteNoise
 
 app = Flask(__name__)
 
-# ATIVAÇÃO DO WHITENOISE: Garante o carregamento do CSS e JS no Render
+# ATIVAÇÃO DO WHITENOISE: Serve os arquivos de estilo CSS e JS direto no Render
 app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/')
 
 DATABASE = 'database.db'
@@ -139,7 +139,6 @@ def terreno():
         valor = request.form.get('valor_aquisicao')
         impostos = request.form.get('impostos_anuais')
         
-        # Corrigido em definitivo: a variável e a coluna batem com o banco de dados
         db.execute("INSERT INTO terrenos (descricao_imovel, valor_aquisicao, impostos_anuais) VALUES (?, ?, ?)", 
                    (descricao, valor, impostos))
         db.commit()
@@ -172,11 +171,12 @@ def retorno():
     indicadores = db.execute("""
         SELECT prod.part_number, prod.descricao, v.quantidade_meta,
                COALESCE((SELECT SUM(m.preco_unitario) FROM materiais m WHERE m.produto_id = prod.id), 0) as mat_total,
-               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processos p WHERE p.produto_id = prod.id), 0) as mod_total
+               COALESCE((SELECT SUM((p.tempo_segundos / 3600.0) * p.custo_mod) FROM processes p WHERE p.produto_id = prod.id), 0) as mod_total
         FROM produtos prod
         JOIN vendas v ON v.produto_id = prod.id
     """).fetchall()
-    return render_template('retorno.html', indicators=indicadores)
+    # Corrigido aqui: passando 'indicadores' exatamente como o seu retorno.html espera
+    return render_template('retorno.html', indicadores=indicadores)
 
 if __name__ == '__main__':
     app.run(debug=True)
