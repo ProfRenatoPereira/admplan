@@ -24,3 +24,22 @@ CREATE TABLE IF NOT EXISTS materiais (
     fonte_url TEXT,
     FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
 );
+
+
+
+-- 4. TABELA DE PRECIFICACAO E MARK-UP
+CREATE TABLE IF NOT EXISTS precificacao (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    produto_id INTEGER UNIQUE NOT NULL,
+    margem_lucro REAL NOT NULL,
+    impostos REAL NOT NULL,
+    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
+);
+
+-- 5. TABELA DE METAS DE VENDAS
+CREATE TABLE IF NOT EXISTS vendas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    produto_id INTEGER NOT NULL,
+    quantidade_meta INTEGER NOT NULL,
+    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
+);
