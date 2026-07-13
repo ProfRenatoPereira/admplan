@@ -3,71 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TERCEIRO ADM ASSOCIADOS{% endblock %}</title>
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="../static/css/style.css">
+    <title>TERCEIRO ADM ASSOCIADOS - Sistema de Gestão Integrada</title>
+    <!-- Vinculação com o arquivo de estilos padrão -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="skip-links"><a href="#main-content">Ir para o conteúdo principal</a></div>
-
-    <!-- Ferramentas Visuais e Auditivas de Acessibilidade -->
-    <div class="accessibility-bar" role="toolbar" aria-label="Ferramentas de Acessibilidade">
-        <button onclick="toggleContraste()" aria-label="Alternar Alto Contraste">🌓 Alto Contraste</button>
-        <button onclick="alterarFonte(1)" aria-label="Aumentar tamanho do texto">A+</button>
-        <button onclick="alterarFonte(-1)" aria-label="Diminuir tamanho do texto">A-</button>
-    </div>
-
-    <!-- Header Corporativo Institucional -->
-    <header class="navbar-corporate" role="banner">
-        <div class="header-main-row">
-            <div class="logo-container">
-                <img src="../static/images/logo.png" alt="Logo Teradmas Desde 2019" class="brand-logo">
-            </div>
-            <div class="header-text-container">
-                <h1>TERCEIRO ADM ASSOCIADOS</h1>
-                <p>Projetos, Execução, Assessoria, Auditoria e Gerenciamento Operacional e de Custos</p>
-            </div>
-            <button class="menu-toggle" aria-label="Abrir Menu" aria-controls="navMenu" aria-expanded="false" id="menuToggle">
-                <span class="bar" aria-hidden="true"></span>
-                <span class="bar" aria-hidden="true"></span>
-                <span class="bar" aria-hidden="true"></span>
-            </button>
-        </div>
-        
-        <nav class="nav-menu-corporate" id="navMenu" aria-label="Menu Principal">
-            <ul class="nav-links">
+    <!-- Barra de Navegação Superior Global -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">TERADMAS</a>
+            <ul class="nav-menu">
                 <li><a href="/">Início</a></li>
+                
+                <!-- Menu Dropdown 1: Infraestrutura -->
                 <li class="dropdown">
-                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">1. Estrutura ▾</button>
-                    <ul class="dropdown-menu">
-                        <li><a href="/terreno">Instalações Imobiliárias</a></li>
-                        <li><a href="/maquinas">Ativos & Máquinas CNC</a></li>
-                    </ul>
+                    <a href="#" class="dropbtn">1. Estrutura ▾</a>
+                    <div class="dropdown-content">
+                        <a href="/terreno">Instalações Imobiliárias</a>
+                        <a href="/maquinas">Ativos & Máquinas CNC</a>
+                    </div>
                 </li>
+
+                <!-- Menu Dropdown 2: Engenharia -->
                 <li class="dropdown">
-                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">2. Processos & MOD ▾</button>
-                    <ul class="dropdown-menu">
-                        <li><a href="/processos">Roteiro & Tempos</a></li>
-                        <li><a href="/materiais">Matéria-Prima & Insumos</a></li>
-                    </ul>
+                    <a href="#" class="dropbtn">2. Processos & MOD ▾</a>
+                    <div class="dropdown-content">
+                        <a href="/processos">Roteiro & Tempos</a>
+                        <a href="/materiais">Matéria-Prima & Insumos</a>
+                    </div>
                 </li>
+
+                <!-- Menu Dropdown 3: Finanças -->
                 <li class="dropdown">
-                    <button class="dropdown-toggle" aria-expanded="false" aria-haspopup="true">3. Finanças & ROI ▾</button>
-                    <ul class="dropdown-menu">
-                        <li><a href="/precificacao">Mark-up Individual</a></li>
-                        <li><a href="/retorno">Retorno Acionistas</a></li>
-                    </ul>
+                    <a href="#" class="dropbtn">3. Finanças & ROI ▾</a>
+                    <div class="dropdown-content">
+                        <a href="/precificacao">Mark-up Individual</a>
+                        <a href="/vendas">Planejamento de Vendas</a>
+                        <a href="/retorno">Retorno Acionistas</a>
+                    </div>
                 </li>
             </ul>
-        </nav>
-    </header>
-
-    <!-- Conteúdo Dinâmico das Páginas Filhas -->
-    <main class="container" id="main-content" tabindex="-1">
-        {% block content %}{% endblock %}
+        </div>
+    </nav>
+    <!-- Container Principal onde as páginas filhas serão renderizadas -->
+    <main class="main-container">
+        <div class="content-card">
+            {% block content %}
+            <!-- O conteúdo de cada página (index, processos, etc.) entra aqui automaticamente -->
+            {% endblock %}
+        </div>
     </main>
 
-    <script src="../static/js/main.js"></script>
+    <!-- Rodapé Corporativo e Pedagógico -->
+    <footer class="footer-global">
+        <p>&copy; 2026 TERCEIRO ADM ASSOCIADOS - Programa de Gestão Empresarial Avançada.</p>
+    </footer>
+
+    <!-- Vinculação com as automações em JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
