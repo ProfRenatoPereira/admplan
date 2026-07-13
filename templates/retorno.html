@@ -1,29 +1,42 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Retorno sobre Investimento (ROI) & Resultados Financeiros</h2>
-<p>Visão geral de custos integrados agregando Engenharia de Produtos, Processos e Planejamento de Vendas.</p>
+<div class="container-gestao">
+    <h2>Retorno sobre Investimento (ROI) & Resultados Financeiros</h2>
+    <p class="subtitulo-painel">Visão geral de custos integrados agregando Engenharia de Produtos, Processos e Planejamento de Vendas.</p>
 
-<h3>Análise Consolidada do Portfólio</h3>
-<table>
-    <thead>
-        <tr>
-            <th>Part Number</th>
-            <th>Meta Comercial</th>
-            <th>Custo Mat. Total</th>
-            <th>Custo Operacional (MOD)</th>
-            <th>Custo Industrial Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ind in indicadores %}
-        <tr>
-            <td><strong>{{ ind.part_number }}</strong></td>
-            <td>{{ ind.quantidade_meta }} un.</td>
-            <td>R$ {{ "%.2f"|format(ind.mat_total * ind.quantidade_meta) }}</td>
-            <td>R$ {{ "%.2f"|format(ind.mod_total * ind.quantidade_meta) }}</td>
-            <td style="color: navy; font-weight: bold;">R$ {{ "%.2f"|format((ind.mat_total + ind.mod_total) * ind.quantidade_meta) }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <div class="tabela-container" style="margin-top: 20px;">
+        <h3>Análise Consolidada do Portfólio</h3>
+        <table class="tabela-dados">
+            <thead>
+                <tr>
+                    <th>Part Number</th>
+                    <th>Meta Comercial</th>
+                    <th>Custo Mat. Total</th>
+                    <th>Custo Operacional (MOD)</th>
+                    <th>Custo Industrial Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ind in indicadores %}
+                <tr>
+                    <td><strong>{{ ind.part_number }}</strong></td>
+                    <td>{{ ind.quantidade_meta }} un.</td>
+                    <td>R$ {{ "%.2f"|format(ind.mat_total * ind.quantidade_meta) }}</td>
+                    <td>R$ {{ "%.2f"|format(ind.mod_total * ind.quantidade_meta) }}</td>
+                    <td style="color: #0d47a1; font-weight: bold; background-color: #e3f2fd;">
+                        R$ {{ "%.2f"|format((ind.mat_total + ind.mod_total) * ind.quantidade_meta) }}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not indicadores %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">
+                        Nenhuma meta de venda cadastrada para calcular os custos consolidados.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
