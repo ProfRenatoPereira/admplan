@@ -1,41 +1,28 @@
 {% extends 'base.html' %}
+
+{% block title %}Apresentação Institucional - TERCEIRO ADM ASSOCIADOS{% endblock %}
+
 {% block content %}
-<div class="container-gestao">
-    <h2>Nascimento do Produto (Cadastro Mestre SQL)</h2>
+<section class="card" style="text-align: center; padding: 40px;">
+    <h2>Apresentação Corporativa</h2>
+    <p style="font-size: 1.1rem; max-width: 800px; margin: 20px auto; color: #555;">
+        Desde 2019, a <strong>TERCEIRO ADM ASSOCIADOS</strong> atua como referência em assessoria e auditoria de gerenciamento operacional. Desenvolvemos soluções completas para engenharia de custos industriais, pcp e auditoria contábil-trabalhista para plantas metalúrgicas de alta performance.
+    </p>
 
-    
-    <form method="POST" action="/" class="form-corporativo">
-        <div class="form-group">
-            <label>Código Único do Produto (Part Number):</label>
-            <input type="text" name="part_number" required placeholder="Ex: PN-1002">
-        </div>
-        <div class="form-group">
-            <label>Descrição Comercial do Item:</label>
-            <input type="text" name="descricao" required placeholder="Ex: Cadeira Ergonômica Industrial">
-        </div>
-        <button type="submit" class="btn-salvar">Salvar Produto no SQL</button>
-    </form>
-
-    <div class="tabela-container">
-        <h3>Catálogo de Engenharia Cadastrado</h3>
-        <table class="tabela-dados">
-            <thead>
-                <tr>
-                    <th>ID Interno</th>
-                    <th>Código Mestre (Part Number)</th>
-                    <th>Descrição do Produto Industrial</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for produto in produtos %}
-                <tr>
-                    <td>{{ produto.id }}</td>
-                    <td><strong>{{ produto.part_number }}</strong></td>
-                    <td>{{ produto.descricao }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Arte Vetorial CSS Simbolizando o Prédio Fictício Industrial -->
+    <div class="building-art-container" style="margin: 40px auto; width: 200px; height: 160px; background-color: #bdc3c7; position: relative; border-radius: 4px; border-bottom: 8px solid #2c3e50;">
+        <div style="position: absolute; bottom: 0; left: 20px; width: 40px; height: 120px; background-color: #2c3e50;"></div>
+        <div style="position: absolute; bottom: 0; right: 20px; width: 40px; height: 120px; background-color: #2c3e50;"></div>
+        <div style="position: absolute; top: -30px; left: 60px; width: 80px; height: 30px; background-color: #16a085; border-radius: 4px 4px 0 0;"></div>
+        <div style="position: absolute; top: 15px; left: 30px; width: 20px; height: 20px; background-color: #fff; border-radius: 2px;"></div>
+        <div style="position: absolute; top: 15px; right: 30px; width: 20px; height: 20px; background-color: #fff; border-radius: 2px;"></div>
+        <div style="position: absolute; top: 50px; left: 30px; width: 20px; height: 20px; background-color: #fff; border-radius: 2px;"></div>
+        <div style="position: absolute; top: 50px; right: 30px; width: 20px; height: 20px; background-color: #fff; border-radius: 2px;"></div>
     </div>
-</div>
+
+    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; font-size: 0.95rem; color: #777;">
+        <p><strong>Complexo Industrial Fictício:</strong> Avenida das Nações Metalúrgicas, nº 2019 - Distrito Industrial, Paraná</p>
+        <p><strong>Contato Operacional:</strong> contato@terceiroadm.com.br | Tel: (41) 3333-2019</p>
+    </div>
+</section>
 {% endblock %}
