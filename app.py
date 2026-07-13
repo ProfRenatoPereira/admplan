@@ -19,7 +19,8 @@ def inicializar_banco():
     if conn:
         try:
             cursor = conn.cursor()
-            # Criação da tabela imobiliária flexível e isolada
+            
+            # 1. Tabela Isolada Imobiliária
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS imobiliario_isolado (
                     id SERIAL PRIMARY KEY,
@@ -32,14 +33,31 @@ def inicializar_banco():
                     meses_retorno NUMERIC(8,1) NOT NULL
                 );
             """)
+            
+            # 2. Tabela Isolada de Ativos e Máquinas Reais
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS maquinas_isoladas (
+                    id SERIAL PRIMARY KEY,
+                    nome_equipamento VARCHAR(150) NOT NULL,
+                    tipo_maquina VARCHAR(100) NOT NULL,
+                    codigo_identificacao VARCHAR(50) NOT NULL,
+                    preco_compra NUMERIC(12,2) NOT NULL,
+                    velocidade_trabalho VARCHAR(50) NOT NULL,
+                    avanco_trabalho VARCHAR(50) NOT NULL,
+                    capacidade_fisica VARCHAR(100) NOT NULL,
+                    link_mercado TEXT,
+                    minutos_ativos_ano INT NOT NULL DEFAULT 144000
+                );
+            """)
+            
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception as e: print(f"Erro banco: {e}")
+        except Exception as e: print(f"Erro na sincronizacao: {e}")
 
 inicializar_banco()
 
-# ROTAS DIRETAS DAS PÁGINAS DE TRABALHO
+# ROTAS DIRETAS DE NAVEGAÇÃO MULTIPÁGINAS
 @app.route('/')
 def index(): return render_template('index.html')
 
@@ -66,7 +84,7 @@ def pagina_retorno(): return render_template('retorno.html')
 
 @app.route('/precificacao')
 def pagina_precificacao(): return render_template('precificacao.html')
-# API ISOLADA: GERENCIAMENTO DE INSTALAÇÕES IMOBILIÁRIAS (AULA 1)
+# API ISOLADA: GESTÃO DE INSTALAÇÕES IMOBILIÁRIAS (AULA 1)
 @app.route('/api/imobiliario_isolado', methods=['GET', 'POST', 'PUT'])
 @app.route('/api/imobiliario_isolado/<int:item_id>', methods=['DELETE'])
 def gerenciar_imobiliario_isolado(item_id=None):
@@ -74,7 +92,6 @@ def gerenciar_imobiliario_isolado(item_id=None):
     if not conn: return jsonify([])
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    # 1. BOTÃO DELETAR (Remoção física permanente do PostgreSQL)
     if request.method == 'DELETE' and item_id:
         try:
             cursor.execute("DELETE FROM imobiliario_isolado WHERE id = %s;", (item_id,))
@@ -84,7 +101,6 @@ def gerenciar_imobiliario_isolado(item_id=None):
             return jsonify({'status': 'sucesso'})
         except Exception as e: return jsonify({'error': str(e)}), 500
             
-    # 2. BOTÕES SALVAR E ALTERAR
     if request.method in ['POST', 'PUT']:
         data = request.get_json()
         idx = data.get('id')
@@ -94,11 +110,9 @@ def gerenciar_imobiliario_isolado(item_id=None):
         indice = float(data.get('indice_correcao', 1.0))
         minutos = int(data.get('minutos_operacionais_ano', 144000))
         
-        # NOVA LÓGICA PEDAGÓGICA FLEXÍVEL: Retorno baseado em 50% do aluguel corrigido
+        # Retorno baseado em 50% do aluguel simulado de mercado corrigido por índice
         retorno_mensal_real = (aluguel * 0.5) * (1 + (indice / 100))
         meses_retorno = capital / retorno_mensal_real if retorno_mensal_real > 0 else 0
-        
-        # Custo minuto de instalação padrão para tabelas internas
         custo_minuto = (capital / 240) / minutos if minutos > 0 else 0
         
         try:
@@ -119,13 +133,65 @@ def gerenciar_imobiliario_isolado(item_id=None):
             return jsonify({'status': 'sucesso'})
         except Exception as e: return jsonify({'error': str(e)}), 500
 
-    # 3. LEITURA PERMANENTE DAS TABELAS ABAIXO DO CADASTRO
     cursor.execute("SELECT * FROM imobiliario_isolado ORDER BY id DESC;")
     registros = cursor.fetchall()
     cursor.close()
     conn.close()
     return jsonify(registros)
-# FIM DO ARQUIVO COMPILÁVEL DO FLASK NO RENDER
+# API ISOLADA: GESTÃO DE ATIVOS E MÁQUINAS REAIS (AULA 2)
+@app.route('/api/maquinas_isoladas', methods=['GET', 'POST', 'PUT'])
+@app.route('/api/maquinas_isoladas/<int:maquina_id>', methods=['DELETE'])
+def gerenciar_maquinas_isoladas(maquina_id=None):
+    conn = obter_conexao_db()
+    if not conn: return jsonify([])
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    if request.method == 'DELETE' and maquina_id:
+        try:
+            cursor.execute("DELETE FROM maquinas_isoladas WHERE id = %s;", (maquina_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e: return jsonify({'error': str(e)}), 500
+            
+    if request.method in ['POST', 'PUT']:
+        data = request.get_json()
+        idx = data.get('id')
+        nome = data.get('nome_equipamento')
+        tipo = data.get('tipo_maquina')
+        codigo = data.get('codigo_identificacao')
+        preco = float(data.get('preco_compra', 0))
+        vel = data.get('velocidade_trabalho', 'N/A')
+        avanco = data.get('avanco_trabalho', 'N/A')
+        cap = data.get('capacidade_fisica', 'N/A')
+        link = data.get('link_mercado', '')
+        minutos = int(data.get('minutos_ativos_ano', 144000))
+        
+        try:
+            if request.method == 'PUT' and idx:
+                cursor.execute(
+                    """UPDATE maquinas_isoladas SET nome_equipamento=%s, tipo_machine=%s, codigo_identificacao=%s, 
+                                                   preco_compra=%s, velocidade_trabalho=%s, avanco_trabalho=%s, 
+                                                   capacidade_fisica=%s, link_mercado=%s, minutos_ativos_ano=%s 
+                       WHERE id=%s;""", (nome, tipo, codigo, preco, vel, avanco, cap, link, minutos, idx)
+                )
+            else:
+                cursor.execute(
+                    """INSERT INTO maquinas_isoladas (nome_equipamento, tipo_maquina, codigo_identificacao, preco_compra, velocidade_trabalho, avanco_trabalho, capacidade_fisica, link_mercado, minutos_ativos_ano) 
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (nome, tipo, codigo, preco, vel, avanco, cap, link, minutos)
+                )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'sucesso'})
+        except Exception as e: return jsonify({'error': str(e)}), 500
+
+    cursor.execute("SELECT * FROM maquinas_isoladas ORDER BY id DESC;")
+    maquinas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(maquinas)
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
