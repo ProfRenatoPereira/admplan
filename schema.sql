@@ -43,3 +43,19 @@ CREATE TABLE IF NOT EXISTS vendas (
     quantidade_meta INTEGER NOT NULL,
     FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
 );
+
+-- 6. TABELA DE INVESTIMENTO IMOBILIÁRIO E TERRENOS
+CREATE TABLE IF NOT EXISTS terrenos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    descricao_imovel TEXT NOT NULL,
+    valor_aquisicao REAL NOT NULL,
+    impostos_anuais REAL NOT NULL
+);
+
+-- 7. TABELA DE ATIVOS E MÁQUINAS CNC
+CREATE TABLE IF NOT EXISTS maquinas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_maquina TEXT NOT NULL,
+    valor_compra REAL NOT NULL,
+    depreciacao_anual REAL NOT NULL
+);
