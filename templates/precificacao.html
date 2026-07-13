@@ -1,33 +1,48 @@
 {% extends 'base.html' %}
-
-{% block title %}Formação de Preço de Venda - TERCEIRO ADM ASSOCIADOS{% endblock %}
-
 {% block content %}
-<section class="card" aria-labelledby="tit-markup">
-    <h2 id="tit-markup">Formação Estratégica de Preço por Canais</h2>
-    <p>Simule e aplique margens corporativas individualizadas para Atacado ou Varejo sobre o custo industrial acumulado.</p>
-    
-    <div class="grid-form">
-        <div class="form-group">
-            <label for="custoTotal">Custo Industrial Acumulado do Item (R$):</label>
-            <input type="number" id="custoTotal" value="0.00" readonly style="background-color: #f1f2f6; font-weight: bold; border-color: #a4b0be;">
-            
-            <label for="canalPreco">Canal de Distribuição Comercial:</label>
-            <select id="canalPreco" onchange="ajustarMargemPorCanal()">
-                <option value="varejo">Varejo (Margem de Contribuição Plena)</option>
-                <option value="atacado">Atacado (Margem Reduzida por Volume)</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="lucro">Margem de Lucro Almejada (%):</label>
-            <input type="number" id="lucro" value="25">
-            
-            <label for="impostosInput">Impostos sobre a Venda Faturamento (%):</label>
-            <input type="number" id="impostosInput" value="18">
-            
-            <button onclick="calcularPrecovenda()" class="btn-primary" style="margin-top: 10px;">Processar Mark-up e Preço Final</button>
-        </div>
+<h2>Formação de Preço & Mark-up Individual</h2>
+<form method="POST" action="/precificacao">
+    <div class="form-group">
+        <label>Definir Preço para o Produto:</label>
+        <select name="produto_id" required>
+            <option value="">-- Escolha o Item --</option>
+            {% for produto in produtos %}
+            <option value="{{ produto.id }}">{{ produto.part_number }}</option>
+            {% endfor %}
+        </select>
     </div>
-    <div id="resultado" class="result-box" style="display:none;"></div>
-</section>
+    <div class="form-group">
+        <label>Margem de Lucro Desejada (%):</label>
+        <input type="number" step="0.1" name="margem_lucro" required placeholder="Ex: 35">
+    </div>
+    <div class="form-group">
+        <label>Alíquota de Impostos Automatizada (%):</label>
+        <input type="number" step="0.1" name="impostos" required placeholder="Ex: 18">
+    </div>
+    <button type="submit" class="btn">Calcular e Salvar Preço</button>
+</form>
+
+<h3>Simulador de Preço de Venda</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Custo Mat.</th>
+            <th>Custo MOD</th>
+            <th>Margem</th>
+            <th>Preço Sugerido</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pre in precificacoes %}
+        <tr>
+            <td>{{ pre.part_number }}</td>
+            <td>R$ {{ "%.2f"|format(pre.custo_mat) }}</td>
+            <td>R$ {{ "%.2f"|format(pre.custo_mod) }}</td>
+            <td>{{ pre.margem_lucro }}%</td>
+            <td><strong>R$ {{ "%.2f"|format((pre.custo_mat + pre.custo_mod) * (1 + pre.margem_lucro/100) * (1 + pre.impostos/100)) }}</strong></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
